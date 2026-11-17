@@ -5,7 +5,7 @@ import type { AnalysisResult } from '../ai/validate';
 import { isSourceMismatch } from '../ai/validate';
 import { findBatchDuplicates, findDuplicates } from '../core/duplicates';
 import { formatNumber } from '../core/numbering';
-import type { KnownPhrase, PhraseDraft } from '../core/types';
+import type { KnownPhrase, LearningDetails, PhraseDraft } from '../core/types';
 
 export interface CardState extends PhraseDraft {
 	id: number;
@@ -15,6 +15,8 @@ export interface CardState extends PhraseDraft {
 	manual: boolean;
 	/** The user explicitly confirmed saving although the phrase already exists. */
 	overrideDuplicate: boolean;
+	/** The longer suggestion this one is only a part of; such cards start unselected. */
+	partOf: string | null;
 }
 
 export interface CardIssues {
@@ -25,11 +27,15 @@ export interface CardIssues {
 	/** Same phrase as an earlier selected card in this batch. */
 	batchDuplicate: boolean;
 	sourceMismatch: boolean;
+	/** The card says the visible context does not settle the meaning. */
+	ambiguousContext: boolean;
 	/** A duplicate that needs explicit confirmation before saving. */
 	needsOverride: boolean;
 	/** Prevents saving: selected and either incomplete or an unconfirmed duplicate. */
 	blocking: boolean;
 }
+
+const EMPTY_DETAILS: LearningDetails = { usage: '', contextNote: '', sourceTranslation: '', exampleSentence: '', exampleTranslation: '' };
 
 export function cardsFromAnalysis(result: AnalysisResult, nextId: () => number): CardState[] {
 	return result.suggestions.map((s) => ({
@@ -40,10 +46,17 @@ export function cardsFromAnalysis(result: AnalysisResult, nextId: () => number):
 		turkishMeaning: s.turkishMeaning,
 		explanation: s.explanation,
 		sourceSentence: s.sourceSentence,
-		selected: true,
+		usage: s.usage,
+		contextNote: s.contextNote,
+		sourceTranslation: s.sourceTranslation,
+		exampleSentence: s.exampleSentence,
+		exampleTranslation: s.exampleTranslation,
+		// A fragment of a longer suggestion is shown but not saved unless the user wants it.
+		selected: s.partOf === null,
 		highlighted: s.highlighted,
 		manual: false,
 		overrideDuplicate: false,
+		partOf: s.partOf,
 	}));
 }
 
@@ -56,10 +69,12 @@ export function blankCard(id: number): CardState {
 		turkishMeaning: '',
 		explanation: '',
 		sourceSentence: '',
+		...EMPTY_DETAILS,
 		selected: true,
 		highlighted: false,
 		manual: true,
 		overrideDuplicate: false,
+		partOf: null,
 	};
 }
 
@@ -81,6 +96,7 @@ export function evaluateCards(cards: ReadonlyArray<CardState>, known: ReadonlyAr
 			existing,
 			batchDuplicate,
 			sourceMismatch: isSourceMismatch(card.originalText, card.sourceSentence),
+			ambiguousContext: card.contextNote.trim() !== '',
 			needsOverride,
 			blocking: card.selected && (missingPhrase || missingMeaning || (needsOverride && !card.overrideDuplicate)),
 		};
@@ -100,6 +116,11 @@ function toDraft(card: CardState): PhraseDraft {
 		turkishMeaning: card.turkishMeaning.trim(),
 		explanation: card.explanation.trim(),
 		sourceSentence: card.sourceSentence.trim(),
+		usage: card.usage.trim(),
+		contextNote: card.contextNote.trim(),
+		sourceTranslation: card.sourceTranslation.trim(),
+		exampleSentence: card.exampleSentence.trim(),
+		exampleTranslation: card.exampleTranslation.trim(),
 	};
 }
 
@@ -136,6 +157,11 @@ export function snapshotCard(card: CardState): string {
 		card.turkishMeaning,
 		card.explanation,
 		card.sourceSentence,
+		card.usage,
+		card.contextNote,
+		card.sourceTranslation,
+		card.exampleSentence,
+		card.exampleTranslation,
 		card.selected,
 		card.overrideDuplicate,
 	]);
@@ -146,7 +172,18 @@ export function snapshotCards(cards: ReadonlyArray<CardState>): Map<number, stri
 }
 
 function hasContent(card: CardState): boolean {
-	return [card.phrase, card.originalText, card.turkishMeaning, card.explanation, card.sourceSentence].some((value) => value.trim() !== '');
+	return [
+		card.phrase,
+		card.originalText,
+		card.turkishMeaning,
+		card.explanation,
+		card.sourceSentence,
+		card.usage,
+		card.contextNote,
+		card.sourceTranslation,
+		card.exampleSentence,
+		card.exampleTranslation,
+	].some((value) => value.trim() !== '');
 }
 
 /**

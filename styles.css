@@ -360,3 +360,20 @@
 	padding: var(--size-2-2);
 	height: auto;
 }
+
+/* Folded learning details on a suggestion card */
+.phrasevault-card-details {
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: var(--size-4-2);
+}
+
+.phrasevault-card-details > summary {
+	width: fit-content;
+	cursor: pointer;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
+.phrasevault-card-details[open] > summary {
+	margin-bottom: var(--size-4-2);
+}

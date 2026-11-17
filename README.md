@@ -2,7 +2,7 @@
 
 PhraseVault is an Obsidian desktop plugin that turns screenshots of English text into numbered, AI-annotated phrase notes for Turkish speakers.
 
-Take a screenshot of a subtitle, article or chat (Win+Shift+S), paste it into PhraseVault, and Claude suggests the expressions worth learning: phrasal verbs, idioms, collocations and fixed expressions, with a contextual Turkish meaning and a short explanation. You review and edit the suggestions, and PhraseVault saves each one as a numbered note (`Phrases/0001.md`, …) and adds it to a growing `INDEX.md`.
+Take a screenshot of a subtitle, article or chat (Win+Shift+S), paste it into PhraseVault, and Claude suggests the expressions worth learning: phrasal verbs, idioms, collocations, fixed expressions and grammatical constructions such as *be meant to*. Each comes with its meaning in that sentence, a short usage note, a Turkish translation of the sentence and, when it helps, an extra example. You review and edit the suggestions, and PhraseVault saves each one as a numbered note (`Phrases/0001.md`, …) and adds it to a growing `INDEX.md`.
 
 The interface is in Turkish. The plugin uses one AI provider, the Anthropic API, with your own API key.
 
@@ -18,9 +18,19 @@ Screenshots: see docs/screenshots/README.md, then remove this comment.
 
 - **Three ways to get a screenshot in:** read the clipboard, press Ctrl+V inside the window, or pick a PNG/JPEG file.
 - **Preview first.** Nothing leaves your computer until you click **Analiz et**. Analysis can be cancelled, and showing the same screenshot again in the same session never sends or bills it twice.
-- **Highlighted and plain text.** If you highlight or underline an expression before taking the screenshot, it is listed first. Without a highlight, Claude suggests up to five useful expressions.
-- **Editable suggestion cards.** Every field can be edited: phrase (dictionary form), original wording, category, Turkish meaning, explanation and source sentence. Untick a card to skip it, or add a phrase by hand when the AI misses one or fails.
-- **Checks on what the AI says.** A warning appears when the quoted wording is not in the source sentence.
+- **Every useful expression, not just the obvious idiom.** Claude looks at each sentence for all genuinely useful multiword expressions, including grammatical constructions and expressions that sit next to or overlap each other ("None of them were meant to make it" → *be meant to* and *make it*). It returns up to eight, but only as many as are worth learning.
+- **Highlighted and plain text.** If you highlight or underline an expression before taking the screenshot, it is listed first.
+- **Learning details for each expression:**
+  - what it means in this sentence
+  - how it works (pattern, what follows it, register)
+  - a natural Turkish translation of the sentence
+  - an optional extra example with its translation, clearly marked as generated
+  - a context note whenever the visible text doesn't settle the meaning, instead of a guess
+- **Compact, editable suggestion cards.** Each card shows the expression, category, Turkish meaning and source sentence. Everything else is folded under **Ayrıntılar** and can be edited there too. Untick a card to skip it, or add a phrase by hand when the AI misses one or fails.
+- **Checks on what the AI says.**
+  - A warning appears when the quoted wording is not in the source sentence.
+  - An "example" that just repeats the screenshot text is dropped.
+  - A fragment of a longer expression from the same sentence (*pick up* inside *pick up the slack*) starts unselected, with a note saying why.
 - **Duplicate detection.** Phrases already in your notes or in `INDEX.md`, or repeated in the same batch, are flagged. Saving a duplicate needs an explicit "Farklı anlamla yine de kaydet".
 - **Safe, sequential numbering.** Numbers are never reused, existing notes are never overwritten, and `INDEX.md` is only appended to. Numbers keep their leading zeros in Reading view and continue past 9999.
 - **One copy of each screenshot.** The screenshot is stored once in `Attachments/` and embedded in every note made from it.
@@ -53,28 +63,35 @@ Attachments/pv-3f9a1c2b7d10e4a5.png
 0002 — [[Phrases/0002|put off]]
 ```
 
-Each note keeps the details in its frontmatter (properties):
+Each note keeps the key data in its frontmatter (properties) and the complete learning content in its body. Text from the screenshot and generated text are labelled separately:
 
 ```markdown
 ---
-phrase: "put off"
-original_text: "putting off"
-category: "phrasal_verb"
-meaning_tr: "ertelemek"
-source_sentence: "Her colleagues had been putting off the task for weeks."
+phrase: "be meant to"
+original_text: "were meant to"
+category: "grammar_pattern"
+meaning_tr: "-mesi beklenmek"
+source_sentence: "None of them were meant to make it, but they did."
 screenshot: "[[Attachments/pv-3f9a1c2b7d10e4a5.png]]"
 created: "2026-11-18"
 number: 2
 tags:
   - phrasevault
 ---
-# put off
+# be meant to
 
-**Kategori:** Phrasal verb
-**Türkçe anlam:** ertelemek
-**Açıklama:** Genellikle isteksizlik yüzünden bir işi sürekli sonraya bırakmayı anlatır; hafif olumsuz bir tonu vardır.
+**Kategori:** Dilbilgisi kalıbı
+**Türkçe anlam:** -mesi beklenmek
+**Bu cümlede:** Hiçbirinin başarmasının beklenmediğini anlatıyor; "but they did" bu beklentinin boşa çıktığını gösteriyor.
+**Kullanım:** be meant to + yalın fiil. Geçmişte (was/were meant to) çoğu zaman gerçekleşmeyen bir beklentidir.
 
-> Her colleagues had been **putting off** the task for weeks.
+**Ekran görüntüsündeki cümle:**
+> None of them **were meant to** make it, but they did.
+
+**Cümlenin Türkçesi:** Hiçbirinin başarması beklenmiyordu ama başardılar.
+
+**Ek örnek (yapay zekâ tarafından üretildi):** This room was meant to be a library.
+**Örneğin Türkçesi:** Bu odanın kütüphane olması planlanmıştı.
 
 ![[Attachments/pv-3f9a1c2b7d10e4a5.png]]
 
@@ -128,7 +145,7 @@ Prices for Claude Haiku 5.5 on the standard API, checked against the [official p
 | 1-hour cache write | $0.20 | $1.00 |
 | Cache read | $0.01 | $0.05 |
 
-A typical screenshot analysis uses a few thousand input tokens (the image plus the fixed instructions) and one to three thousand output tokens, including the model's thinking. That comes to about **$0.001–0.002 per analysis**.
+A typical screenshot analysis uses a few thousand input tokens (the image plus the fixed instructions) and a few thousand output tokens, including the model's thinking (medium effort) and the learning details. That comes to about **$0.002–0.004 per analysis**; the real amount for each analysis is shown on the suggestion screen.
 
 ### How the estimate is calculated
 
@@ -210,14 +227,15 @@ npm run build      # type-check + production bundle (main.js)
 
 Open `./dev-vault` in Obsidian with **Open folder as vault**, then turn on community plugins once. This vault is disposable, gitignored, and the only vault the dev scripts write to. The install script refuses any target outside the repository.
 
-**Tests** cover numbering, the index, note rendering, duplicates, image validation, the AI response schema and errors (mocked responses), cost calculation and the usage history, the review logic, index repair, and full save workflows against an in-memory vault. `tests/setup.ts` replaces `fetch`, `XMLHttpRequest` and `WebSocket` with stubs that throw, so the suite can never make a paid request.
+**Tests** cover numbering, the index, note rendering, duplicates, image validation, the AI response schema and errors (mocked responses), cost calculation and the usage history, the review logic, index repair, and full save workflows against an in-memory vault. Regression fixtures in `tests/fixtures/ai/` cover a missed grammatical construction (*be meant to* + *make it*), overlapping versus redundant nested expressions, an ambiguous context, and translations with generated examples. `tests/setup.ts` replaces `fetch`, `XMLHttpRequest` and `WebSocket` with stubs that throw, so the suite can never make a paid request.
 
 **Releases:** bump the version with `npm version <x.y.z>` (this also updates `manifest.json` and `versions.json`), then push the tag. The release workflow builds and attaches `main.js`, `manifest.json` and `styles.css` to a draft GitHub release.
 
 ## Known limitations
 
 - **Desktop only.** The workflow is built around desktop screenshots; mobile is not supported.
-- **The AI can misread text** or miss a highlight. That's why every suggestion is reviewed and editable, and why mismatches with the source sentence are flagged.
+- **The AI can misread text,** miss a highlight or a construction, or explain something imprecisely. That's why every suggestion is reviewed and editable, and why mismatches with the source sentence are flagged. The automated tests check how answers are handled, not how good the model's answers are; that is checked by hand.
+- **Fragment detection is a hint.** A suggestion is marked as part of a longer one when both its phrase and its wording sit inside the longer suggestion from the same sentence. It is only unselected, never removed, so you can still keep it.
 - **Interface language:** the UI and the explanations are in Turkish only.
 - **One entry per line in `INDEX.md`** relies on Obsidian's default *Strict line breaks: off*. With it on, Reading view joins the lines; the file itself is unaffected.
 - **Duplicate detection** compares the `phrase` in note properties and the `INDEX.md` link aliases. Notes written by hand without those aren't recognized.

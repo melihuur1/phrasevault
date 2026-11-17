@@ -10,6 +10,11 @@ const putOff: NoteInput = {
 	turkishMeaning: 'ertelemek',
 	explanation: 'Bir işi daha sonraya bırakmak.',
 	sourceSentence: 'Her colleagues had been putting off the task for weeks.',
+	usage: '',
+	contextNote: '',
+	sourceTranslation: '',
+	exampleSentence: '',
+	exampleTranslation: '',
 	screenshotPath: 'Attachments/pv-3f9a1c2b7d10e4a5.png',
 	createdDate: '2026-11-17',
 };
@@ -40,8 +45,9 @@ describe('renderNote', () => {
 				'',
 				'**Kategori:** Phrasal verb',
 				'**Türkçe anlam:** ertelemek',
-				'**Açıklama:** Bir işi daha sonraya bırakmak.',
+				'**Bu cümlede:** Bir işi daha sonraya bırakmak.',
 				'',
+				'**Ekran görüntüsündeki cümle:**',
 				'> Her colleagues had been **putting off** the task for weeks.',
 				'',
 				'![[Attachments/pv-3f9a1c2b7d10e4a5.png]]',
@@ -87,8 +93,9 @@ describe('renderNote', () => {
 
 	it('omits empty optional sections instead of inventing content', () => {
 		const note = renderNote({ ...putOff, explanation: '  ', sourceSentence: '', screenshotPath: null });
-		expect(note).not.toContain('Açıklama');
+		expect(note).not.toContain('Bu cümlede');
 		expect(note).not.toContain('> ');
+		for (const label of ['Kullanım', 'Bağlam notu', 'Cümlenin Türkçesi', 'Ek örnek', 'Örneğin Türkçesi']) expect(note).not.toContain(label);
 		expect(note).not.toContain('![[');
 		expect(frontmatterOf(note)['screenshot']).toBe('');
 	});
@@ -131,5 +138,86 @@ describe('helpers', () => {
 
 	it('formatLocalDate uses the local calendar date', () => {
 		expect(formatLocalDate(new Date(2026, 0, 5, 23, 59))).toBe('2026-01-05');
+	});
+});
+
+describe('renderNote — complete educational content', () => {
+	const meantTo: NoteInput = {
+		number: 7,
+		phrase: 'be meant to',
+		originalText: 'were meant to',
+		category: 'grammar_pattern',
+		turkishMeaning: '-mesi beklenmek',
+		explanation: 'Hiçbirinin başarmasının beklenmediğini anlatıyor.',
+		usage: 'be meant to + yalın fiil.',
+		contextNote: 'Önceki cümleler görünmüyor.',
+		sourceSentence: 'None of them were meant to make it, but they did.',
+		sourceTranslation: 'Hiçbirinin başarması beklenmiyordu ama başardılar.',
+		exampleSentence: 'This room was meant to be a library.',
+		exampleTranslation: 'Bu odanın kütüphane olması planlanmıştı.',
+		screenshotPath: 'Attachments/pv-3f9a1c2b7d10e4a5.png',
+		createdDate: '2026-11-18',
+	};
+
+	it('saves every detail, with screenshot text and generated text labelled apart', () => {
+		const body = renderNote(meantTo).split('---\n')[2];
+		expect(body).toBe(
+			[
+				'# be meant to',
+				'',
+				'**Kategori:** Dilbilgisi kalıbı',
+				'**Türkçe anlam:** -mesi beklenmek',
+				'**Bu cümlede:** Hiçbirinin başarmasının beklenmediğini anlatıyor.',
+				'**Kullanım:** be meant to + yalın fiil.',
+				'**Bağlam notu:** Önceki cümleler görünmüyor.',
+				'',
+				'**Ekran görüntüsündeki cümle:**',
+				'> None of them **were meant to** make it, but they did.',
+				'',
+				'**Cümlenin Türkçesi:** Hiçbirinin başarması beklenmiyordu ama başardılar.',
+				'',
+				'**Ek örnek (yapay zekâ tarafından üretildi):** This room was meant to be a library.',
+				'**Örneğin Türkçesi:** Bu odanın kütüphane olması planlanmıştı.',
+				'',
+				'![[Attachments/pv-3f9a1c2b7d10e4a5.png]]',
+				'',
+				'*Eklenme tarihi: 2026-11-18*',
+				'',
+			].join('\n'),
+		);
+	});
+
+	it('keeps the frontmatter keys unchanged, so duplicate detection and index repair still work', () => {
+		expect(Object.keys(frontmatterOf(renderNote(meantTo)))).toEqual([
+			'phrase',
+			'original_text',
+			'category',
+			'meaning_tr',
+			'source_sentence',
+			'screenshot',
+			'created',
+			'number',
+			'tags',
+		]);
+		expect(frontmatterOf(renderNote(meantTo))['category']).toBe('grammar_pattern');
+	});
+
+	it('never puts generated text inside the quoted screenshot sentence', () => {
+		const quote = renderNote(meantTo)
+			.split('\n')
+			.filter((line) => line.startsWith('> '));
+		expect(quote).toEqual(['> None of them **were meant to** make it, but they did.']);
+	});
+
+	it('keeps multi-line details on one line each', () => {
+		const note = renderNote({ ...meantTo, usage: 'be meant to\n+ yalın fiil', exampleSentence: 'Line one\nline two' });
+		expect(note).toContain('**Kullanım:** be meant to + yalın fiil\n');
+		expect(note).toContain('**Ek örnek (yapay zekâ tarafından üretildi):** Line one line two\n');
+	});
+
+	it('writes an example without a translation line when there is no translation', () => {
+		const note = renderNote({ ...meantTo, exampleTranslation: '' });
+		expect(note).toContain('**Ek örnek (yapay zekâ tarafından üretildi):** This room was meant to be a library.\n\n![[');
+		expect(note).not.toContain('Örneğin Türkçesi');
 	});
 });

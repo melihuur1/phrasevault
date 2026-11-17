@@ -7,35 +7,73 @@ export const SAMPLE_UI = {
 	notice: 'Bu öneriler örnek yanıttan geldi; görüntünüz analiz edilmedi.',
 } as const;
 
+/**
+ * Shows every case of the review screen: a grammatical construction and an
+ * overlapping expression from one sentence, an ambiguous context, a generated
+ * example, and a redundant fragment ("pick up") that starts unselected.
+ */
 export function sampleAnalysisJson(): string {
+	const meantTo = 'None of them were meant to make it, but they did.';
+	const meantToTr = 'Hiçbirinin başarması beklenmiyordu ama başardılar.';
+	const slack = "Someone has to pick up the slack when she's away.";
+	const slackTr = 'O yokken birinin açığı kapatması gerekiyor.';
 	return JSON.stringify({
 		status: 'unmarked',
 		suggestions: [
 			{
-				phrase: 'run out of',
-				originalText: 'ran out of',
-				category: 'phrasal_verb',
-				turkishMeaning: 'tükenmek, kalmamak',
-				explanation: 'Elde hiç kalmayacak kadar bitmeyi anlatır; sabır, zaman ve para için çok kullanılır.',
-				sourceSentence: 'She ran out of patience and decided to call it a day.',
+				phrase: 'be meant to',
+				originalText: 'were meant to',
+				category: 'grammar_pattern',
+				turkishMeaning: '-mesi beklenmek',
+				explanation: 'Hiçbirinin başarmasının beklenmediğini anlatıyor; "but they did" bu beklentinin boşa çıktığını gösteriyor.',
+				usage: 'be meant to + yalın fiil. Plan, kader ya da beklenti gereği olması gerekeni anlatır; geçmişte (was/were meant to) çoğu zaman gerçekleşmeyen bir beklentidir.',
+				contextNote: '',
+				sourceSentence: meantTo,
+				sourceTranslation: meantToTr,
+				exampleSentence: 'This room was meant to be a library.',
+				exampleTranslation: 'Bu odanın kütüphane olması planlanmıştı.',
 				highlighted: false,
 			},
 			{
-				phrase: 'call it a day',
-				originalText: 'call it a day',
+				phrase: 'make it',
+				originalText: 'make it',
+				category: 'expression',
+				turkishMeaning: 'başarmak',
+				explanation: 'Zor bir durumu atlatıp hedefe ulaşmayı anlatıyor; beklenmedik bir başarı söz konusu.',
+				usage: 'Nesnesiz kullanılır ve "it" belirli bir şeyi göstermez. make it (to a place) bir yere yetişmek anlamına da gelir.',
+				contextNote: 'Önceki cümleler görünmüyor; "make it" burada "başarmak" ya da "hayatta kalmak" anlamında olabilir.',
+				sourceSentence: meantTo,
+				sourceTranslation: meantToTr,
+				exampleSentence: 'She moved to New York to become an actress, and she really made it.',
+				exampleTranslation: 'Oyuncu olmak için New York’a taşındı ve gerçekten başardı.',
+				highlighted: false,
+			},
+			{
+				phrase: 'pick up the slack',
+				originalText: 'pick up the slack',
 				category: 'idiom',
-				turkishMeaning: 'paydos etmek, bugünlük bırakmak',
-				explanation: 'Yorulunca ya da yeterince çalışınca o günkü işi bırakmayı anlatır; günlük konuşmada yaygındır.',
-				sourceSentence: 'She ran out of patience and decided to call it a day.',
+				turkishMeaning: 'açığı kapatmak',
+				explanation: 'Biri yokken onun yapamadığı işleri başkasının üstlenmesi gerektiğini söylüyor.',
+				usage: 'Genellikle "have to" ya da "need to" ile, iş ve ekip bağlamında kullanılır.',
+				contextNote: '',
+				sourceSentence: slack,
+				sourceTranslation: slackTr,
+				exampleSentence: 'When Tom got sick, the rest of the team picked up the slack.',
+				exampleTranslation: 'Tom hastalanınca ekibin geri kalanı onun işlerini üstlendi.',
 				highlighted: false,
 			},
 			{
-				phrase: 'put off',
-				originalText: 'putting off',
+				phrase: 'pick up',
+				originalText: 'pick up',
 				category: 'phrasal_verb',
-				turkishMeaning: 'ertelemek',
-				explanation: 'Genellikle isteksizlik yüzünden bir işi sürekli sonraya bırakmayı anlatır; hafif olumsuz bir tonu vardır.',
-				sourceSentence: 'Her colleagues had been putting off the task for weeks.',
+				turkishMeaning: 'almak',
+				explanation: '',
+				usage: '',
+				contextNote: '',
+				sourceSentence: slack,
+				sourceTranslation: slackTr,
+				exampleSentence: '',
+				exampleTranslation: '',
 				highlighted: false,
 			},
 		],

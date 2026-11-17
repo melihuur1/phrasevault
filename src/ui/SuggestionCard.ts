@@ -8,10 +8,12 @@ export interface CardCallbacks {
 	/** Any edit or selection change; the modal re-evaluates all cards. */
 	onChange(): void;
 	onRemove(card: SuggestionCard): void;
+	/** The "Ayrıntılar" section was opened or closed (kept across re-renders). */
+	onToggleDetails(card: SuggestionCard, open: boolean): void;
 }
 
 type TextKey = 'phrase' | 'originalText' | 'turkishMeaning';
-type AreaKey = 'explanation' | 'sourceSentence';
+type AreaKey = 'explanation' | 'sourceSentence' | 'usage' | 'contextNote' | 'sourceTranslation' | 'exampleSentence' | 'exampleTranslation';
 
 /**
  * One editable suggestion. Inputs are created once and edit `state` directly;
@@ -23,6 +25,7 @@ export class SuggestionCard {
 	private readonly badgesEl: HTMLDivElement;
 	private readonly warningsEl: HTMLDivElement;
 	private readonly selectInput: HTMLInputElement;
+	private readonly details: HTMLDetailsElement;
 	private readonly controls: Array<TextComponent | TextAreaComponent | DropdownComponent> = [];
 	private readonly requiredInputs = new Map<'phrase' | 'turkishMeaning', HTMLInputElement>();
 	private disabled = false;
@@ -31,6 +34,7 @@ export class SuggestionCard {
 		parent: HTMLElement,
 		readonly state: CardState,
 		private readonly callbacks: CardCallbacks,
+		detailsOpen = false,
 	) {
 		this.el = parent.createDiv({ cls: 'phrasevault-card' });
 
@@ -59,13 +63,31 @@ export class SuggestionCard {
 
 		this.warningsEl = this.el.createDiv({ cls: 'phrasevault-card-warnings' });
 
+		// Compact primary part: what is needed to decide and to save.
 		const fields = this.el.createDiv({ cls: 'phrasevault-card-fields' });
 		this.addText(fields, 'phrase', REVIEW.fields.phrase, REVIEW.placeholders.phrase);
-		this.addText(fields, 'originalText', REVIEW.fields.originalText, REVIEW.placeholders.originalText);
 		this.addCategory(fields);
-		this.addText(fields, 'turkishMeaning', REVIEW.fields.turkishMeaning, REVIEW.placeholders.turkishMeaning);
-		this.addArea(fields, 'explanation', REVIEW.fields.explanation, REVIEW.placeholders.explanation);
+		this.addText(fields, 'turkishMeaning', REVIEW.fields.turkishMeaning, REVIEW.placeholders.turkishMeaning, true);
 		this.addArea(fields, 'sourceSentence', REVIEW.fields.sourceSentence, REVIEW.placeholders.sourceSentence);
+
+		// Everything else stays editable under "Ayrıntılar" and is always saved in the note.
+		this.details = this.el.createEl('details', { cls: 'phrasevault-card-details' });
+		this.details.open = detailsOpen;
+		this.details.createEl('summary', { text: REVIEW.details });
+		this.details.addEventListener('toggle', () => callbacks.onToggleDetails(this, this.details.open));
+		const more = this.details.createDiv({ cls: 'phrasevault-card-fields' });
+		this.addText(more, 'originalText', REVIEW.fields.originalText, REVIEW.placeholders.originalText, true);
+		this.addArea(more, 'explanation', REVIEW.fields.explanation, REVIEW.placeholders.explanation);
+		this.addArea(more, 'usage', REVIEW.fields.usage, REVIEW.placeholders.usage);
+		this.addArea(more, 'contextNote', REVIEW.fields.contextNote, REVIEW.placeholders.contextNote);
+		this.addArea(more, 'sourceTranslation', REVIEW.fields.sourceTranslation, REVIEW.placeholders.sourceTranslation);
+		this.addArea(more, 'exampleSentence', REVIEW.fields.exampleSentence, REVIEW.placeholders.exampleSentence);
+		this.addArea(more, 'exampleTranslation', REVIEW.fields.exampleTranslation, REVIEW.placeholders.exampleTranslation);
+	}
+
+	/** Opens "Ayrıntılar", e.g. so a field that needs checking is visible. */
+	openDetails(): void {
+		this.details.open = true;
 	}
 
 	private field(parent: HTMLElement, key: string, label: string, wide: boolean): { container: HTMLElement; id: string } {
@@ -75,8 +97,8 @@ export class SuggestionCard {
 		return { container, id };
 	}
 
-	private addText(parent: HTMLElement, key: TextKey, label: string, placeholder: string): void {
-		const { container, id } = this.field(parent, key, label, false);
+	private addText(parent: HTMLElement, key: TextKey, label: string, placeholder: string, wide = false): void {
+		const { container, id } = this.field(parent, key, label, wide);
 		const text = new TextComponent(container)
 			.setPlaceholder(placeholder)
 			.setValue(this.state[key])
@@ -128,6 +150,10 @@ export class SuggestionCard {
 		if (issues.sourceMismatch) {
 			this.badgesEl.createSpan({ cls: 'phrasevault-badge is-warning', text: REVIEW.badgeSourceMismatch, attr: { title: REVIEW.sourceMismatchHelp } });
 		}
+		if (issues.ambiguousContext) {
+			this.badgesEl.createSpan({ cls: 'phrasevault-badge is-warning', text: REVIEW.badgeAmbiguous, attr: { title: REVIEW.ambiguousHelp } });
+		}
+		if (state.partOf !== null) this.badgesEl.createSpan({ cls: 'phrasevault-badge', text: REVIEW.badgePartOf(state.partOf) });
 
 		this.warningsEl.empty();
 		for (const match of issues.existing) {
@@ -136,6 +162,8 @@ export class SuggestionCard {
 		if (issues.batchDuplicate) this.warningsEl.createDiv({ cls: 'phrasevault-warning', text: REVIEW.duplicateInBatch });
 		if (issues.needsOverride && state.selected) this.addOverrideToggle();
 		if (issues.sourceMismatch) this.warningsEl.createDiv({ cls: 'phrasevault-hint', text: REVIEW.sourceMismatchHelp });
+		if (issues.ambiguousContext) this.warningsEl.createDiv({ cls: 'phrasevault-hint', text: REVIEW.ambiguousHelp });
+		if (state.partOf !== null && !state.selected) this.warningsEl.createDiv({ cls: 'phrasevault-hint', text: REVIEW.partOfHelp });
 		const missingRequired = issues.missingPhrase || issues.missingMeaning;
 		if (state.selected && showRequired && missingRequired) {
 			this.warningsEl.createDiv({ cls: 'phrasevault-warning', text: REVIEW.requiredMissing });

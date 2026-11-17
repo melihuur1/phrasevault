@@ -5,19 +5,6 @@ export function isPhraseCategory(value: unknown): value is PhraseCategory {
 	return typeof value === 'string' && (PHRASE_CATEGORIES as readonly string[]).includes(value);
 }
 
-/** The fields a user reviews and edits before saving one phrase. */
-export interface PhraseDraft {
-	/** Dictionary/canonical form, e.g. "put off". */
-	phrase: string;
-	/** Exact wording in the screenshot, e.g. "putting off". */
-	originalText: string;
-	category: PhraseCategory;
-	turkishMeaning: string;
-	explanation: string;
-	/** Verbatim sentence from the screenshot; empty when unreadable. */
-	sourceSentence: string;
-}
-
 /**
  * The educational details of a phrase: shown under "Ayrıntılar" on the review
  * card and saved in the note body. An empty string means "not applicable".
@@ -37,6 +24,20 @@ export interface LearningDetails {
 export const LEARNING_DETAIL_FIELDS = ['usage', 'contextNote', 'sourceTranslation', 'exampleSentence', 'exampleTranslation'] as const satisfies ReadonlyArray<
 	keyof LearningDetails
 >;
+
+/** The fields a user reviews and edits before saving one phrase. */
+export interface PhraseDraft extends LearningDetails {
+	/** Dictionary/canonical form, e.g. "put off". */
+	phrase: string;
+	/** Exact wording in the screenshot, e.g. "putting off". */
+	originalText: string;
+	category: PhraseCategory;
+	turkishMeaning: string;
+	/** What the expression means in this sentence (Turkish). */
+	explanation: string;
+	/** Verbatim sentence from the screenshot; empty when unreadable. */
+	sourceSentence: string;
+}
 
 /** A known phrase already stored in the vault (from a note's frontmatter or an index entry). */
 export interface KnownPhrase {

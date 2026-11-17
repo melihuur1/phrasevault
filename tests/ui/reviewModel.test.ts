@@ -39,6 +39,65 @@ describe('cardsFromAnalysis', () => {
 	});
 });
 
+describe('cards with learning details', () => {
+	it('carries every learning detail into the card', () => {
+		const [card] = cardsFromAnalysis(parseAnalysisText(fixture('construction.json')), ids());
+		expect(card).toMatchObject({
+			phrase: 'be meant to',
+			originalText: 'were meant to',
+			category: 'grammar_pattern',
+			sourceTranslation: 'Hiçbirinin başarması beklenmiyordu ama başardılar.',
+			exampleSentence: 'This room was meant to be a library.',
+			exampleTranslation: 'Bu odanın kütüphane olması planlanmıştı.',
+			partOf: null,
+			selected: true,
+		});
+		expect(card?.usage).toContain('be meant to + yalın fiil');
+	});
+
+	it('starts a redundant fragment unselected, without counting that as an unsaved change', () => {
+		const cards = cardsFromAnalysis(parseAnalysisText(fixture('nested.json')), ids());
+		const fragment = cards.find((c) => c.phrase === 'pick up');
+		expect(fragment).toMatchObject({ selected: false, partOf: 'pick up the slack' });
+		expect(hasUnsavedChanges(cards, snapshotCards(cards))).toBe(false);
+	});
+
+	it('flags an ambiguous context from the note, and stops when the user clears it', () => {
+		const card = cardsFromAnalysis(parseAnalysisText(fixture('context-ambiguous.json')), ids())[0];
+		if (card === undefined) throw new Error('fixture');
+		expect(evaluateCards([card], [])[0]?.ambiguousContext).toBe(true);
+		card.contextNote = '  ';
+		expect(evaluateCards([card], [])[0]).toMatchObject({ ambiguousContext: false, blocking: false });
+	});
+
+	it('does not block saving because the context is ambiguous', () => {
+		const cards = cardsFromAnalysis(parseAnalysisText(fixture('context-ambiguous.json')), ids());
+		expect(planSave(cards, [])).toMatchObject({ ok: true });
+	});
+
+	it('saves the trimmed learning details with the draft', () => {
+		const card = { ...blankCard(1), phrase: 'put off', turkishMeaning: 'ertelemek', usage: '  put off + -ing ', exampleSentence: ' Do not put it off. ' };
+		const plan = planSave([card], []);
+		expect(plan.ok && plan.drafts[0]).toMatchObject({ usage: 'put off + -ing', exampleSentence: 'Do not put it off.', contextNote: '' });
+	});
+
+	it.each(['usage', 'contextNote', 'sourceTranslation', 'exampleSentence', 'exampleTranslation', 'explanation', 'originalText'] as const)(
+		'counts an edit of the folded field %s as an unsaved change',
+		(field) => {
+			const cards = cardsFromAnalysis(parseAnalysisText(fixture('construction.json')), ids());
+			const baseline = snapshotCards(cards);
+			const first = cards[0];
+			if (first === undefined) throw new Error('fixture');
+			first[field] = `${first[field]} (düzenlendi)`;
+			expect(hasUnsavedChanges(cards, baseline)).toBe(true);
+		},
+	);
+
+	it('treats a manual card with only a detail filled in as unsaved', () => {
+		expect(hasUnsavedChanges([{ ...blankCard(5), usage: 'not' }], new Map())).toBe(true);
+	});
+});
+
 describe('evaluateCards', () => {
 	it('flags missing required fields only', () => {
 		const card = { ...blankCard(1), phrase: 'come across' };

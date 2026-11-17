@@ -15,6 +15,11 @@ function draft(phrase: string, overrides: Partial<PhraseDraft> = {}): PhraseDraf
 		turkishMeaning: `${phrase} (tr)`,
 		explanation: '',
 		sourceSentence: '',
+		usage: '',
+		contextNote: '',
+		sourceTranslation: '',
+		exampleSentence: '',
+		exampleTranslation: '',
 		...overrides,
 	};
 }

@@ -80,6 +80,8 @@ export class ImportModal extends Modal {
 	private cardViews = new Map<number, SuggestionCard>();
 	/** Card states the user has not changed since they appeared (or since the last save). */
 	private baseline = new Map<number, string>();
+	/** Cards whose "Ayrıntılar" section is open, so re-rendering keeps it open. */
+	private openDetails = new Set<number>();
 	private known: KnownPhrase[] = [];
 	private attemptedSave = false;
 	private saveButton: ButtonComponent | null = null;
@@ -372,6 +374,7 @@ export class ImportModal extends Modal {
 		this.report = null;
 		this.cards = [];
 		this.baseline = new Map();
+		this.openDetails.clear();
 		this.cardViews.clear();
 		this.known = [];
 		this.attemptedSave = false;
@@ -676,13 +679,18 @@ export class ImportModal extends Modal {
 		const list = root.createDiv({ cls: 'phrasevault-cards' });
 		this.cardViews.clear();
 		for (const card of this.cards) {
-			const view = new SuggestionCard(list, card, {
+			const callbacks = {
 				onChange: () => {
 					this.setReviewMessage(null);
 					this.refreshReview();
 				},
-				onRemove: (removed) => this.removeCard(removed),
-			});
+				onRemove: (removed: SuggestionCard) => this.removeCard(removed),
+				onToggleDetails: (toggled: SuggestionCard, open: boolean) => {
+					if (open) this.openDetails.add(toggled.state.id);
+					else this.openDetails.delete(toggled.state.id);
+				},
+			};
+			const view = new SuggestionCard(list, card, callbacks, this.openDetails.has(card.id));
 			this.cardViews.set(card.id, view);
 		}
 

@@ -145,6 +145,42 @@ describe('screenshot → suggestions → numbered notes', () => {
 	});
 });
 
+describe('richer analysis → complete notes', () => {
+	it('saves a grammatical construction and an overlapping expression from one sentence with all their details', async () => {
+		const image = await importScreenshot();
+		const cards = await analyze(image, respondWith(fixture('construction.json')));
+		expect(cards.map((c) => [c.phrase, c.selected])).toEqual([
+			['be meant to', true],
+			['make it', true],
+		]);
+
+		const { report } = await saveCards(image, cards);
+		expect(report.saved.map((e) => [e.number, e.phrase])).toEqual([
+			[1, 'be meant to'],
+			[2, 'make it'],
+		]);
+
+		// The note holds the complete content, whatever was folded on the card.
+		const note = vault.text('Phrases/0001.md') ?? '';
+		expect(note).toContain('**Kategori:** Dilbilgisi kalıbı');
+		expect(note).toContain('**Kullanım:** be meant to + yalın fiil.');
+		expect(note).toContain('> None of them **were meant to** make it, but they did.');
+		expect(note).toContain('**Cümlenin Türkçesi:** Hiçbirinin başarması beklenmiyordu ama başardılar.');
+		expect(note).toContain('**Ek örnek (yapay zekâ tarafından üretildi):** This room was meant to be a library.');
+		expect(vault.text('Phrases/0002.md')).toContain('**Bağlam notu:** Önceki cümleler görünmüyor;');
+		expect(vault.text('INDEX.md')).toBe(`${createIndexContent()}0001 — [[Phrases/0001|be meant to]]\n0002 — [[Phrases/0002|make it]]\n`);
+	});
+
+	it('does not save a redundant fragment unless the user selects it', async () => {
+		const image = await importScreenshot();
+		const cards = await analyze(image, respondWith(fixture('nested.json')));
+		expect(cards.filter((c) => !c.selected).map((c) => [c.phrase, c.partOf])).toEqual([['pick up', 'pick up the slack']]);
+
+		const { report } = await saveCards(image, cards);
+		expect(report.saved.map((e) => e.phrase)).toEqual(['look forward to', 'hear from', 'pick up the slack']);
+	});
+});
+
 describe('when the AI cannot help', () => {
 	it('falls back to manual entry after a network error', async () => {
 		const image = await importScreenshot();

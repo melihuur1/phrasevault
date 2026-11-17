@@ -1,10 +1,10 @@
 // Validates and cleans the model's JSON. Pure and fully testable with fixtures.
 
 import { normalizePhrase } from '../core/duplicates';
-import { isPhraseCategory, LEARNING_DETAIL_FIELDS, type LearningDetails, type PhraseDraft } from '../core/types';
+import { isPhraseCategory, LEARNING_DETAIL_FIELDS, type PhraseDraft } from '../core/types';
 import { ANALYSIS_STATUSES, MAX_SUGGESTIONS, type AnalysisStatus, type RawAnalysis, type RawSuggestion } from './schema';
 
-export interface Suggestion extends PhraseDraft, LearningDetails {
+export interface Suggestion extends PhraseDraft {
 	highlighted: boolean;
 	/** The original wording could not be found in the quoted source sentence. */
 	sourceMismatch: boolean;

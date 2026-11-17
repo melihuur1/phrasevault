@@ -48,12 +48,22 @@ export function highlightInSentence(sentence: string, original: string): string 
 	return `${sentence.slice(0, at)}**${sentence.slice(at, end)}**${sentence.slice(end)}`;
 }
 
+/**
+ * The complete note: frontmatter with the stable keys (used for duplicate
+ * detection and "İndeksi onar"), then every educational detail in the body.
+ * Text from the screenshot and generated text are labelled separately.
+ */
 export function renderNote(input: NoteInput): string {
 	const phrase = singleLine(input.phrase);
 	const original = singleLine(input.originalText);
 	const meaning = singleLine(input.turkishMeaning);
 	const explanation = singleLine(input.explanation);
 	const sentence = singleLine(input.sourceSentence);
+	const usage = singleLine(input.usage);
+	const contextNote = singleLine(input.contextNote);
+	const sentenceTranslation = singleLine(input.sourceTranslation);
+	const example = singleLine(input.exampleSentence);
+	const exampleTranslation = singleLine(input.exampleTranslation);
 	const screenshotLink = input.screenshotPath === null ? '' : `[[${input.screenshotPath}]]`;
 
 	const frontmatter = [
@@ -71,14 +81,22 @@ export function renderNote(input: NoteInput): string {
 		'---',
 	];
 
+	const line = (label: string, text: string): string[] => (text === '' ? [] : [`**${label}:** ${text}`]);
+
 	const details = [
-		`**${NOTE_LABELS.category}:** ${CATEGORY_LABELS[input.category]}`,
-		`**${NOTE_LABELS.meaning}:** ${meaning}`,
+		...line(NOTE_LABELS.category, CATEGORY_LABELS[input.category]),
+		...line(NOTE_LABELS.meaning, meaning),
+		...line(NOTE_LABELS.explanation, explanation),
+		...line(NOTE_LABELS.usage, usage),
+		...line(NOTE_LABELS.contextNote, contextNote),
 	];
-	if (explanation !== '') details.push(`**${NOTE_LABELS.explanation}:** ${explanation}`);
 
 	const sections: string[] = [`# ${phrase}`, details.join('\n')];
-	if (sentence !== '') sections.push(`> ${highlightInSentence(sentence, original)}`);
+	if (sentence !== '') sections.push(`**${NOTE_LABELS.sourceSentence}:**\n> ${highlightInSentence(sentence, original)}`);
+	sections.push(...line(NOTE_LABELS.sourceTranslation, sentenceTranslation));
+	if (example !== '') {
+		sections.push([...line(NOTE_LABELS.example, example), ...line(NOTE_LABELS.exampleTranslation, exampleTranslation)].join('\n'));
+	}
 	if (input.screenshotPath !== null) sections.push(`!${screenshotLink}`);
 	sections.push(`*${NOTE_LABELS.createdOn}: ${input.createdDate}*`);
 
