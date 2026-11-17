@@ -138,6 +138,11 @@ export class PhraseStore {
 		});
 	}
 
+	/** ensureStructure(), serialized with saves (used by the "prepare structure" command). */
+	prepare(): Promise<{ indexCreated: boolean }> {
+		return this.serialize(() => this.ensureStructure());
+	}
+
 	/** The number the next saved phrase will most likely get (for display only). */
 	peekNextNumber(): Promise<number> {
 		return this.serialize(() => this.computeNextNumber());

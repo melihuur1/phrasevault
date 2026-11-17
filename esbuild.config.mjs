@@ -9,7 +9,10 @@ if you want to view the source, please visit the github repository of this plugi
 */
 `;
 
-const prod = process.argv[2] === 'production';
+// Modes: "production" (minified, dev helpers removed), "dev-once" (one dev build
+// copied into ./dev-vault), or no argument (watch mode, copied after every build).
+const mode = process.argv[2] ?? 'watch';
+const prod = mode === 'production';
 
 /**
  * In watch mode, copy every successful build into the disposable ./dev-vault.
@@ -54,12 +57,17 @@ const context = await esbuild.context({
 	treeShaking: true,
 	outfile: 'main.js',
 	minify: prod,
+	define: {
+		// Development-only helpers (e.g. the sample analysis button) are dropped from production builds.
+		__DEV__: prod ? 'false' : 'true',
+	},
 	plugins: prod ? [] : [devVaultPlugin],
 });
 
-if (prod) {
-	await context.rebuild();
-	process.exit(0);
-} else {
+if (mode === 'watch') {
 	await context.watch();
+} else {
+	await context.rebuild();
+	await context.dispose();
+	process.exit(0);
 }

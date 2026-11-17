@@ -2,3 +2,118 @@
  * PhraseVault styles.
  * Only Obsidian theme variables are used so the plugin follows the user's theme.
  */
+
+.phrasevault-modal {
+	width: min(760px, 92vw);
+}
+
+.phrasevault-content {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-3);
+}
+
+.phrasevault-hidden-input {
+	display: none;
+}
+
+/* Empty state */
+.phrasevault-empty {
+	border: 2px dashed var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	padding: var(--size-4-8) var(--size-4-4);
+	text-align: center;
+	color: var(--text-muted);
+}
+
+.phrasevault-empty-hint {
+	margin: 0 0 var(--size-4-2);
+	color: var(--text-normal);
+	font-weight: var(--font-semibold);
+}
+
+.phrasevault-empty-subhint {
+	margin: 0;
+	font-size: var(--font-ui-small);
+}
+
+/* Preview */
+.phrasevault-preview {
+	display: flex;
+	justify-content: center;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	padding: var(--size-4-2);
+}
+
+.phrasevault-preview img {
+	max-width: 100%;
+	max-height: 38vh;
+	object-fit: contain;
+	border-radius: var(--radius-s);
+}
+
+.phrasevault-meta,
+.phrasevault-next-number,
+.phrasevault-privacy,
+.phrasevault-review-status {
+	margin: 0;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+/* Messages */
+.phrasevault-message {
+	padding: var(--size-4-2) var(--size-4-3);
+	border-radius: var(--radius-s);
+	font-size: var(--font-ui-small);
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+}
+
+.phrasevault-message-error {
+	color: var(--text-error);
+	border-color: var(--text-error);
+}
+
+.phrasevault-message-info {
+	color: var(--text-normal);
+}
+
+/* Actions */
+.phrasevault-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+	justify-content: flex-end;
+}
+
+/* Analyzing */
+.phrasevault-analyzing {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	color: var(--text-muted);
+}
+
+.phrasevault-spinner {
+	width: 16px;
+	height: 16px;
+	border: 2px solid var(--background-modifier-border);
+	border-top-color: var(--interactive-accent);
+	border-radius: 50%;
+	animation: phrasevault-spin 0.8s linear infinite;
+}
+
+@keyframes phrasevault-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.phrasevault-spinner {
+		animation: none;
+	}
+}

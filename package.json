@@ -7,6 +7,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
+		"build:dev": "node esbuild.config.mjs dev-once",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"install-dev": "node scripts/install-dev.mjs",
 		"test": "vitest run",

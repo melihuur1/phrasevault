@@ -1,6 +1,9 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+	define: {
+		__DEV__: 'true',
+	},
 	test: {
 		include: ['tests/**/*.test.ts'],
 		// Blocks every outgoing network request so the suite can never make a paid API call.
