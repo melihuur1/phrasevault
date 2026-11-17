@@ -1,0 +1,23 @@
+{
+	"status": "ambiguous",
+	"suggestions": [
+		{
+			"phrase": "take over",
+			"originalText": "took over",
+			"category": "phrasal_verb",
+			"turkishMeaning": "devralmak",
+			"explanation": "Bir işin sorumluluğunu üstlenmek.",
+			"sourceSentence": "He took over the project last spring.",
+			"highlighted": true
+		},
+		{
+			"phrase": "last spring",
+			"originalText": "last spring",
+			"category": "collocation",
+			"turkishMeaning": "geçen bahar",
+			"explanation": "Geçmişteki belirli bir mevsimi belirtir.",
+			"sourceSentence": "He took over the project last spring.",
+			"highlighted": true
+		}
+	]
+}

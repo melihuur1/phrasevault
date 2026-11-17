@@ -1,0 +1,32 @@
+{
+	"status": "unmarked",
+	"suggestions": [
+		{
+			"phrase": "run out of",
+			"originalText": "ran out of",
+			"category": "phrasal_verb",
+			"turkishMeaning": "-in tükenmesi, bitmesi",
+			"explanation": "Bir şeyin (burada sabrın) tamamen bitmesi anlamında kullanılır.",
+			"sourceSentence": "She ran out of patience and decided to call it a day.",
+			"highlighted": false
+		},
+		{
+			"phrase": "call it a day",
+			"originalText": "call it a day",
+			"category": "idiom",
+			"turkishMeaning": "paydos etmek, bugünlük bırakmak",
+			"explanation": "Bir işi o gün için bitirmeye karar vermek.",
+			"sourceSentence": "She ran out of patience and decided to call it a day.",
+			"highlighted": false
+		},
+		{
+			"phrase": "put off",
+			"originalText": "putting off",
+			"category": "phrasal_verb",
+			"turkishMeaning": "ertelemek",
+			"explanation": "Yapılması gereken bir işi sonraya bırakmak.",
+			"sourceSentence": "Her colleagues had been putting off the task for weeks.",
+			"highlighted": false
+		}
+	]
+}

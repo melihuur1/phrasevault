@@ -1,0 +1,23 @@
+{
+	"status": "highlighted",
+	"suggestions": [
+		{
+			"phrase": "for weeks",
+			"originalText": "for weeks",
+			"category": "expression",
+			"turkishMeaning": "haftalardır",
+			"explanation": "Uzun süredir devam eden bir durumu anlatır.",
+			"sourceSentence": "Her colleagues had been putting off the task for weeks.",
+			"highlighted": false
+		},
+		{
+			"phrase": "come across",
+			"originalText": "came across",
+			"category": "phrasal_verb",
+			"turkishMeaning": "rastlamak, tesadüfen bulmak",
+			"explanation": "Bir şeyi ya da birini beklenmedik şekilde bulmak.",
+			"sourceSentence": "I came across an old photo while cleaning.",
+			"highlighted": true
+		}
+	]
+}

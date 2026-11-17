@@ -1,0 +1,14 @@
+{
+	"status": "unmarked",
+	"suggestions": [
+		{ "phrase": "  put   off ", "originalText": " putting off ", "category": "phrasal_verb", "turkishMeaning": " ertelemek ", "explanation": " Sonraya   bırakmak. ", "sourceSentence": "They kept  putting off the meeting.", "highlighted": false },
+		{ "phrase": "Put off", "originalText": "put off", "category": "phrasal_verb", "turkishMeaning": "ertelemek", "explanation": "", "sourceSentence": "", "highlighted": false },
+		{ "phrase": "", "originalText": "x", "category": "expression", "turkishMeaning": "boş ifade", "explanation": "", "sourceSentence": "", "highlighted": false },
+		{ "phrase": "no meaning", "originalText": "no meaning", "category": "expression", "turkishMeaning": "  ", "explanation": "", "sourceSentence": "", "highlighted": false },
+		{ "phrase": "give up", "originalText": "gave in", "category": "phrasal_verb", "turkishMeaning": "pes etmek", "explanation": "", "sourceSentence": "She finally gave up on the idea.", "highlighted": false },
+		{ "phrase": "a", "originalText": "a", "category": "expression", "turkishMeaning": "1", "explanation": "", "sourceSentence": "", "highlighted": false },
+		{ "phrase": "b", "originalText": "b", "category": "expression", "turkishMeaning": "2", "explanation": "", "sourceSentence": "", "highlighted": false },
+		{ "phrase": "c", "originalText": "c", "category": "expression", "turkishMeaning": "3", "explanation": "", "sourceSentence": "", "highlighted": false },
+		{ "phrase": "d", "originalText": "d", "category": "expression", "turkishMeaning": "4", "explanation": "", "sourceSentence": "", "highlighted": false }
+	]
+}
