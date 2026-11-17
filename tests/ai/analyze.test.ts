@@ -84,8 +84,8 @@ describe('buildAnalysisRequest', () => {
 describe('analyzeScreenshot — responses', () => {
 	it('returns validated suggestions from a mocked response', async () => {
 		const send = sender(textMessage(fixture('unmarked.json')));
-		const result = await analyzeScreenshot(send, IMAGE, { model: DEFAULT_MODEL });
-		expect(result.suggestions.map((s) => s.phrase)).toEqual(['run out of', 'call it a day', 'put off']);
+		const { analysis } = await analyzeScreenshot(send, IMAGE, { model: DEFAULT_MODEL });
+		expect(analysis.suggestions.map((s) => s.phrase)).toEqual(['run out of', 'call it a day', 'put off']);
 		expect(send).toHaveBeenCalledTimes(1);
 	});
 
@@ -96,13 +96,13 @@ describe('analyzeScreenshot — responses', () => {
 				{ type: 'text', text: fixture('highlighted.json'), citations: null },
 			]),
 		);
-		const result = await analyzeScreenshot(send, IMAGE, { model: DEFAULT_MODEL });
-		expect(result.suggestions[0]?.phrase).toBe('come across');
+		const { analysis } = await analyzeScreenshot(send, IMAGE, { model: DEFAULT_MODEL });
+		expect(analysis.suggestions[0]?.phrase).toBe('come across');
 	});
 
 	it('returns an empty result for screenshots without English text', async () => {
-		const result = await analyzeScreenshot(sender(textMessage(fixture('empty.json'))), IMAGE, { model: DEFAULT_MODEL });
-		expect(result).toEqual({ status: 'no_english_text', suggestions: [] });
+		const { analysis } = await analyzeScreenshot(sender(textMessage(fixture('empty.json'))), IMAGE, { model: DEFAULT_MODEL });
+		expect(analysis).toEqual({ status: 'no_english_text', suggestions: [] });
 	});
 
 	it.each([
@@ -113,6 +113,53 @@ describe('analyzeScreenshot — responses', () => {
 		['max_tokens truncation', textMessage('{"status":"unm', 'max_tokens'), 'truncated'],
 	])('maps %s to a clear error', async (_label, response, code) => {
 		expect(await codeOf(analyzeScreenshot(sender(response), IMAGE, { model: DEFAULT_MODEL }))).toBe(code);
+	});
+});
+
+describe('analyzeScreenshot — billing information', () => {
+	const NOW = new Date('2026-11-18T10:30:00.000Z');
+
+	function withUsage(usage: unknown, overrides: Partial<Record<'id' | 'model', unknown>> = {}): Message {
+		return { ...textMessage(fixture('unmarked.json')), usage, ...overrides } as unknown as Message;
+	}
+
+	it('reports the response ID, the model the API used, the token usage, and the time', async () => {
+		const response = withUsage(
+			{ input_tokens: 2912, output_tokens: 1044, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, service_tier: 'standard' },
+			{ id: 'msg_01ABC', model: 'claude-haiku-5-5-20261015' },
+		);
+		const { billing } = await analyzeScreenshot(sender(response), IMAGE, { model: DEFAULT_MODEL, now: () => NOW });
+		expect(billing).toMatchObject({ messageId: 'msg_01ABC', model: 'claude-haiku-5-5-20261015', receivedAt: '2026-11-18T10:30:00.000Z' });
+		expect(billing.usage).toMatchObject({ inputTokens: 2912, outputTokens: 1044, cacheReadTokens: 0, serviceTier: 'standard' });
+	});
+
+	it('does not invent usage when the response has none', async () => {
+		const { billing } = await analyzeScreenshot(sender(withUsage(undefined)), IMAGE, { model: DEFAULT_MODEL, now: () => NOW });
+		expect(billing.usage).toBeNull();
+	});
+
+	it('falls back to the requested model and a local ID when the response omits them', async () => {
+		const response = withUsage({ input_tokens: 5, output_tokens: 5 }, { id: '', model: undefined });
+		const { billing } = await analyzeScreenshot(sender(response), IMAGE, { model: 'claude-sonnet-5-5', now: () => NOW });
+		expect(billing.model).toBe('claude-sonnet-5-5');
+		expect(billing.messageId).toMatch(/^local-/);
+	});
+
+	it.each([
+		['a refusal', textMessage('', 'refusal')],
+		['a truncated answer', textMessage('{"status":"unm', 'max_tokens')],
+		['an invalid answer', textMessage('not json')],
+	])('keeps the billing information on %s, because the request was still billed', async (_label, response) => {
+		const error = await analyzeScreenshot(sender(response), IMAGE, { model: DEFAULT_MODEL, now: () => NOW }).catch((e: unknown) => e);
+		expect(error).toBeInstanceOf(AnalyzeError);
+		expect((error as AnalyzeError).billing).toMatchObject({ messageId: 'msg_test', usage: { inputTokens: 10, outputTokens: 10 } });
+	});
+
+	it('has no billing information when no response arrived', async () => {
+		const error = await analyzeScreenshot(sender(new APIConnectionError({ message: 'fetch failed' })), IMAGE, { model: DEFAULT_MODEL }).catch(
+			(e: unknown) => e,
+		);
+		expect((error as AnalyzeError).billing).toBeNull();
 	});
 });
 

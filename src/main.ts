@@ -1,5 +1,6 @@
 import { Notice, Plugin } from 'obsidian';
 import type { AnalysisResult } from './ai/validate';
+import { addUsageRecord, createUsageRecord, emptyUsageLog, type ResponseBilling, type UsageRecord } from './core/usageLog';
 import { COMMANDS, STRUCTURE } from './i18n/tr';
 import { PhraseVaultSettingTab } from './settings';
 import { DEFAULT_SETTINGS, sanitizeSettings, type PhraseVaultSettings } from './settingsData';
@@ -11,11 +12,17 @@ import { PhraseStore } from './vault/vaultStore';
 /** Analyses kept in memory for this session so re-opening the same screenshot never bills twice. */
 const ANALYSIS_CACHE_LIMIT = 20;
 
+export interface CachedAnalysis {
+	analysis: AnalysisResult;
+	/** The usage record of the request that produced it (shown again, never counted again). */
+	usage: UsageRecord;
+}
+
 export default class PhraseVaultPlugin extends Plugin {
 	settings: PhraseVaultSettings = { ...DEFAULT_SETTINGS };
 	store!: PhraseStore;
 	private activeImport: ImportModal | null = null;
-	private readonly analysisCache = new Map<string, AnalysisResult>();
+	private readonly analysisCache = new Map<string, CachedAnalysis>();
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -68,11 +75,11 @@ export default class PhraseVaultPlugin extends Plugin {
 		if (this.activeImport === modal) this.activeImport = null;
 	}
 
-	getCachedAnalysis(hash: string): AnalysisResult | undefined {
+	getCachedAnalysis(hash: string): CachedAnalysis | undefined {
 		return this.analysisCache.get(hash);
 	}
 
-	rememberAnalysis(hash: string, result: AnalysisResult): void {
+	rememberAnalysis(hash: string, result: CachedAnalysis): void {
 		this.analysisCache.delete(hash);
 		this.analysisCache.set(hash, result);
 		while (this.analysisCache.size > ANALYSIS_CACHE_LIMIT) {
@@ -80,6 +87,26 @@ export default class PhraseVaultPlugin extends Plugin {
 			if (oldest === undefined) break;
 			this.analysisCache.delete(oldest);
 		}
+	}
+
+	/**
+	 * Adds the estimated cost of one received API response to the local history.
+	 * A response that is already recorded (same message ID) is never counted again.
+	 */
+	recordUsage(billing: ResponseBilling): UsageRecord {
+		const record = createUsageRecord(billing);
+		const { log, added } = addUsageRecord(this.settings.usage, record);
+		if (added) {
+			this.settings.usage = log;
+			// Non-fatal if it fails: the estimate is still shown for this analysis.
+			this.saveSettings().catch(() => undefined);
+		}
+		return record;
+	}
+
+	async resetUsage(): Promise<void> {
+		this.settings.usage = emptyUsageLog();
+		await this.saveSettings();
 	}
 
 	private async prepareStructure(): Promise<void> {

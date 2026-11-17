@@ -1,6 +1,13 @@
-import { App, PluginSettingTab, SecretComponent, Setting, type SettingDefinitionItem } from 'obsidian';
+import { App, Notice, PluginSettingTab, SecretComponent, Setting, type SettingDefinitionItem } from 'obsidian';
 import { DEFAULT_MODEL } from './ai/analyze';
+import { formatUsd, PRICING_VERIFIED_ON } from './core/cost';
+import { COST, formatDate, formatDateTime, SETTINGS } from './i18n/tr';
 import type PhraseVaultPlugin from './main';
+import { makeDestructive } from './ui/buttons';
+import { confirmAction } from './ui/ConfirmModal';
+
+/** Recent analyses listed in the settings; the full (small) history stays in data.json. */
+const RECENT_SHOWN = 5;
 
 interface SettingRow {
 	name: string;
@@ -9,12 +16,10 @@ interface SettingRow {
 	build?: (setting: Setting) => void;
 }
 
-const PRIVACY_TEXT =
-	'“Analiz et” düğmesine bastığınızda yalnızca önizlemede gördüğünüz ekran görüntüsü ve sabit bir talimat metni Anthropic API’ye gönderilir. Kasanızdaki diğer notlar hiçbir zaman gönderilmez.';
-const COST_TEXT =
-	'API kullanımı Claude Pro aboneliğine dahil değildir; Anthropic Console üzerinden ön ödemeli kredi gerekir. Tahmini maliyet ekran görüntüsü başına yaklaşık 0,001–0,002 ABD dolarıdır.';
-
 export class PhraseVaultSettingTab extends PluginSettingTab {
+	/** Rows that show usage data, refreshed in place after a reset. */
+	private usageRows: { total: Setting | null; recent: Setting | null } = { total: null, recent: null };
+
 	constructor(
 		app: App,
 		private readonly plugin: PhraseVaultPlugin,
@@ -25,8 +30,8 @@ export class PhraseVaultSettingTab extends PluginSettingTab {
 	private mainRows(): SettingRow[] {
 		return [
 			{
-				name: 'Anthropic API anahtarı',
-				desc: 'Anahtar, Obsidian’ın gizli anahtar deposunda saklanır. Eklenti ayarlarında yalnızca anahtarın adı tutulur; anahtarın kendisi hiçbir dosyaya yazılmaz.',
+				name: SETTINGS.apiKeyName,
+				desc: SETTINGS.apiKeyDesc,
 				build: (setting) =>
 					setting.addComponent((el) =>
 						new SecretComponent(this.app, el).setValue(this.plugin.settings.apiKeySecretName).onChange(async (value) => {
@@ -36,8 +41,8 @@ export class PhraseVaultSettingTab extends PluginSettingTab {
 					),
 			},
 			{
-				name: 'Model',
-				desc: `Kullanılacak Claude modeli. Varsayılan: ${DEFAULT_MODEL}`,
+				name: SETTINGS.modelName,
+				desc: SETTINGS.modelDesc(DEFAULT_MODEL),
 				build: (setting) =>
 					setting.addText((text) =>
 						text
@@ -54,8 +59,77 @@ export class PhraseVaultSettingTab extends PluginSettingTab {
 
 	private infoRows(): SettingRow[] {
 		return [
-			{ name: 'Gönderilen veriler', desc: PRIVACY_TEXT },
-			{ name: 'Maliyet', desc: COST_TEXT },
+			{ name: SETTINGS.privacyName, desc: SETTINGS.privacyDesc },
+			{ name: SETTINGS.costName, desc: SETTINGS.costDesc },
+		];
+	}
+
+	private usageSummary(): string {
+		const usage = this.plugin.settings.usage;
+		if (usage.since === null) return SETTINGS.usageEmpty;
+		return SETTINGS.usageTotal(formatUsd(usage.totalPicoUsd), usage.pricedCount, usage.unpricedCount, formatDate(usage.since));
+	}
+
+	private recentUsage(): DocumentFragment {
+		const fragment = createFragment();
+		fragment.createDiv({ text: SETTINGS.usageRecentDesc });
+		const records = this.plugin.settings.usage.recent.slice(-RECENT_SHOWN).reverse();
+		if (records.length === 0) {
+			fragment.createDiv({ text: SETTINGS.usageRecentEmpty });
+			return fragment;
+		}
+		const list = fragment.createEl('ul', { cls: 'phrasevault-usage-list' });
+		for (const record of records) {
+			const amount = record.costPicoUsd === null ? COST.unavailable : formatUsd(record.costPicoUsd);
+			list.createEl('li', {
+				text: SETTINGS.usageRecord(formatDateTime(record.at), record.model, record.inputTokens, record.outputTokens, amount),
+			});
+		}
+		return fragment;
+	}
+
+	private refreshUsageRows(): void {
+		this.usageRows.total?.setDesc(this.usageSummary());
+		this.usageRows.recent?.setDesc(this.recentUsage());
+	}
+
+	private async resetUsage(): Promise<void> {
+		const confirmed = await confirmAction(this.app, {
+			title: SETTINGS.resetTitle,
+			message: SETTINGS.resetMessage,
+			confirmText: SETTINGS.resetConfirm,
+			cancelText: SETTINGS.resetCancel,
+		});
+		if (!confirmed) return;
+		await this.plugin.resetUsage();
+		this.refreshUsageRows();
+		new Notice(SETTINGS.resetDone);
+	}
+
+	private usageRowsList(): SettingRow[] {
+		return [
+			{
+				name: SETTINGS.usageTotalName,
+				desc: SETTINGS.usageEmpty,
+				build: (setting) => {
+					this.usageRows.total = setting;
+					setting.setDesc(this.usageSummary());
+					setting.addButton((button) =>
+						makeDestructive(button)
+							.setButtonText(SETTINGS.resetButton)
+							.onClick(() => void this.resetUsage()),
+					);
+				},
+			},
+			{
+				name: SETTINGS.usageRecentName,
+				desc: SETTINGS.usageRecentDesc,
+				build: (setting) => {
+					this.usageRows.recent = setting;
+					setting.setDesc(this.recentUsage());
+				},
+			},
+			{ name: SETTINGS.usageDisclaimerName, desc: SETTINGS.usageDisclaimer(PRICING_VERIFIED_ON) },
 		];
 	}
 
@@ -67,7 +141,8 @@ export class PhraseVaultSettingTab extends PluginSettingTab {
 		};
 		return [
 			{ type: 'group', items: this.mainRows().map(toDefinition) },
-			{ type: 'group', heading: 'Gizlilik ve maliyet', items: this.infoRows().map(toDefinition) },
+			{ type: 'group', heading: SETTINGS.usageHeading, items: this.usageRowsList().map(toDefinition) },
+			{ type: 'group', heading: SETTINGS.privacyHeading, items: this.infoRows().map(toDefinition) },
 		];
 	}
 
@@ -80,7 +155,9 @@ export class PhraseVaultSettingTab extends PluginSettingTab {
 			row.build?.(setting);
 		};
 		this.mainRows().forEach(add);
-		new Setting(containerEl).setName('Gizlilik ve maliyet').setHeading();
+		new Setting(containerEl).setName(SETTINGS.usageHeading).setHeading();
+		this.usageRowsList().forEach(add);
+		new Setting(containerEl).setName(SETTINGS.privacyHeading).setHeading();
 		this.infoRows().forEach(add);
 	}
 }

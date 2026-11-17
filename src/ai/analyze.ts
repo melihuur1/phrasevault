@@ -14,6 +14,8 @@ import Anthropic, {
 	RateLimitError,
 } from '@anthropic-ai/sdk';
 import type { Message, MessageCreateParamsNonStreaming } from '@anthropic-ai/sdk/resources/messages/messages';
+import { readUsage } from '../core/cost';
+import type { ResponseBilling } from '../core/usageLog';
 import { SYSTEM_PROMPT, USER_INSTRUCTION } from './prompt';
 import { ANALYSIS_OUTPUT_FORMAT } from './schema';
 import { InvalidAnalysisError, parseAnalysisText, type AnalysisResult } from './validate';
@@ -62,6 +64,8 @@ export class AnalyzeError extends Error {
 	constructor(
 		readonly code: AnalyzeErrorCode,
 		detail: string,
+		/** Set when the API did answer (and bill) but the answer was unusable. */
+		readonly billing: ResponseBilling | null = null,
 	) {
 		super(redactSecrets(detail));
 		this.name = 'AnalyzeError';
@@ -128,28 +132,56 @@ export function buildAnalysisRequest(model: string, image: ApiImage): MessageCre
 export interface AnalyzeOptions {
 	model: string;
 	signal?: AbortSignal;
+	/** Clock for the billing timestamp (injectable for tests). */
+	now?: () => Date;
 }
 
-/** Sends the screenshot for analysis and returns validated suggestions. Throws AnalyzeError. */
-export async function analyzeScreenshot(send: SendMessage, image: ApiImage, options: AnalyzeOptions): Promise<AnalysisResult> {
+export interface AnalyzeOutcome {
+	analysis: AnalysisResult;
+	billing: ResponseBilling;
+}
+
+function localMessageId(): string {
+	return `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** What the response reports about its own cost. Usage is never invented: missing counts give `usage: null`. */
+export function billingFromMessage(message: Message, requestedModel: string, receivedAt: Date): ResponseBilling {
+	const id: unknown = message.id;
+	const model: unknown = message.model;
+	return {
+		messageId: typeof id === 'string' && id !== '' ? id : localMessageId(),
+		model: typeof model === 'string' && model !== '' ? model : requestedModel,
+		usage: readUsage(message.usage),
+		receivedAt: receivedAt.toISOString(),
+	};
+}
+
+/**
+ * Sends the screenshot for analysis and returns validated suggestions plus the
+ * response's billing information. Throws AnalyzeError; when the API answered but
+ * the answer was unusable, the error still carries the billing information.
+ */
+export async function analyzeScreenshot(send: SendMessage, image: ApiImage, options: AnalyzeOptions): Promise<AnalyzeOutcome> {
 	let message: Message;
 	try {
 		message = await send(buildAnalysisRequest(options.model, image), options.signal);
 	} catch (error) {
 		throw toAnalyzeError(error);
 	}
+	const billing = billingFromMessage(message, options.model, (options.now ?? (() => new Date()))());
 
-	if (message.stop_reason === 'refusal') throw new AnalyzeError('refusal', 'The model declined to analyze this image');
+	if (message.stop_reason === 'refusal') throw new AnalyzeError('refusal', 'The model declined to analyze this image', billing);
 	if (message.stop_reason === 'max_tokens' || message.stop_reason === 'model_context_window_exceeded') {
-		throw new AnalyzeError('truncated', `Response stopped early (${message.stop_reason})`);
+		throw new AnalyzeError('truncated', `Response stopped early (${message.stop_reason})`, billing);
 	}
 
 	// Read text blocks by type: thinking blocks may come first.
 	const text = message.content.flatMap((block) => (block.type === 'text' ? [block.text] : [])).join('');
 	try {
-		return parseAnalysisText(text);
+		return { analysis: parseAnalysisText(text), billing };
 	} catch (error) {
-		if (error instanceof InvalidAnalysisError) throw new AnalyzeError('invalid_response', error.message);
-		throw toAnalyzeError(error);
+		const failure = error instanceof InvalidAnalysisError ? new AnalyzeError('invalid_response', error.message) : toAnalyzeError(error);
+		throw new AnalyzeError(failure.code, failure.message, billing);
 	}
 }

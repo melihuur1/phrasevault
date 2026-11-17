@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readUsage } from '../src/core/cost';
+import { addUsageRecord, createUsageRecord, emptyUsageLog } from '../src/core/usageLog';
 import { DEFAULT_SETTINGS, sanitizeSettings } from '../src/settingsData';
 
 describe('sanitizeSettings', () => {
@@ -17,7 +19,20 @@ describe('sanitizeSettings', () => {
 			apiKeySecretName: 'anthropic',
 			model: 'claude-x',
 			lastIssuedNumber: 12,
+			usage: emptyUsageLog(),
 		});
+	});
+
+	it('keeps the local usage history across restarts', () => {
+		const record = createUsageRecord({
+			messageId: 'msg_1',
+			model: 'claude-haiku-5-5',
+			usage: readUsage({ input_tokens: 2912, output_tokens: 1044 }),
+			receivedAt: '2026-11-18T10:00:00.000Z',
+		});
+		const usage = addUsageRecord(emptyUsageLog(), record).log;
+		const saved = JSON.parse(JSON.stringify({ ...DEFAULT_SETTINGS, usage })) as unknown;
+		expect(sanitizeSettings(saved).usage).toEqual(usage);
 	});
 
 	it('rejects invalid high-water marks instead of trusting them', () => {

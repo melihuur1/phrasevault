@@ -4,12 +4,14 @@ import { parseAnalysisText, type AnalysisResult } from '../ai/validate';
 import { blobToBytes, classifyPaste, pickImageFile, readImageFromClipboard } from '../clipboard';
 import { extensionOf, importImageBytes, toArrayBuffer, type ImageBytes, type ImportedImage } from '../core/imageInput';
 import { formatLocalDate } from '../core/noteMarkdown';
+import type { UsageRecord } from '../core/usageLog';
 import { formatNumber } from '../core/numbering';
 import type { KnownPhrase } from '../core/types';
 import { SAMPLE_UI, sampleAnalysisJson } from '../dev/sampleAnalysis';
 import {
 	ANALYZE_ERRORS,
 	CLIPBOARD_PROBLEMS,
+	COST,
 	DONE,
 	formatBytes,
 	IMAGE_PROBLEMS,
@@ -22,6 +24,7 @@ import {
 import { prepareApiImage } from '../imagePrep';
 import { INDEX_PATH } from '../constants';
 import type PhraseVaultPlugin from '../main';
+import { costLabel, renderCostSummary } from './costView';
 import type { SaveReport } from '../vault/vaultStore';
 import {
 	blankCard,
@@ -43,6 +46,13 @@ interface StatusMessage {
 	text: string;
 }
 
+/** Where the suggestions on screen came from, for the cost line. */
+interface ApiOrigin {
+	usage: UsageRecord;
+	/** Shown again from this session's cache: no new request, nothing billed or counted again. */
+	reused: boolean;
+}
+
 /**
  * The main PhraseVault window. The screenshot is only sent to the AI when the
  * user clicks "Analiz et"; importing and previewing never touch the network.
@@ -54,6 +64,7 @@ export class ImportModal extends Modal {
 	private message: StatusMessage | null = null;
 	private abortController: AbortController | null = null;
 	private analysis: AnalysisResult | null = null;
+	private origin: ApiOrigin | null = null;
 	private closed = false;
 	private busyLoading = false;
 
@@ -208,7 +219,7 @@ export class ImportModal extends Modal {
 
 		const cached = options.force ? undefined : this.plugin.getCachedAnalysis(image.hash);
 		if (cached !== undefined) {
-			this.showAnalysis(cached, false);
+			this.showAnalysis(cached.analysis, { usage: cached.usage, reused: true });
 			return;
 		}
 
@@ -236,18 +247,24 @@ export class ImportModal extends Modal {
 				return;
 			}
 
-			const result = await analyzeScreenshot(createAnthropicSender(apiKey), prepared.image, {
+			const outcome = await analyzeScreenshot(createAnthropicSender(apiKey), prepared.image, {
 				model: this.plugin.settings.model,
 				signal: controller.signal,
 			});
+			// The response was billed: record and cache it even if the window closed meanwhile.
+			const usage = this.plugin.recordUsage(outcome.billing);
+			this.plugin.rememberAnalysis(image.hash, { analysis: outcome.analysis, usage });
 			if (this.closed || this.image !== image) return;
-			this.plugin.rememberAnalysis(image.hash, result);
-			this.showAnalysis(result, false);
+			this.showAnalysis(outcome.analysis, { usage, reused: false });
 		} catch (error) {
+			const failure = error instanceof AnalyzeError ? error : null;
+			// An unusable answer (refusal, truncated, invalid) was still billed.
+			const billed = failure?.billing ? this.plugin.recordUsage(failure.billing) : null;
 			if (this.closed || this.image !== image) return;
-			const code = error instanceof AnalyzeError ? error.code : 'unknown';
+			const code = failure?.code ?? 'unknown';
+			const billedNote = billed === null ? '' : ` ${COST.billedFailure(costLabel(billed))}`;
 			this.phase = 'preview';
-			this.showMessage(code === 'aborted' ? { kind: 'info', text: UI.analysisCancelled } : { kind: 'error', text: ANALYZE_ERRORS[code] });
+			this.showMessage(code === 'aborted' ? { kind: 'info', text: UI.analysisCancelled } : { kind: 'error', text: ANALYZE_ERRORS[code] + billedNote });
 		} finally {
 			if (this.abortController === controller) this.abortController = null;
 		}
@@ -265,15 +282,16 @@ export class ImportModal extends Modal {
 
 	private runSampleAnalysis(): void {
 		// The __DEV__ guard lets production builds drop the sample data entirely.
-		if (__DEV__) this.showAnalysis(parseAnalysisText(sampleAnalysisJson()), true);
+		if (__DEV__) this.showAnalysis(parseAnalysisText(sampleAnalysisJson()), 'sample');
 	}
 
-	private showAnalysis(result: AnalysisResult, isSample: boolean): void {
-		this.analysis = result;
+	private showAnalysis(result: AnalysisResult, origin: ApiOrigin | 'sample'): void {
 		this.clearReview();
+		this.analysis = result;
+		this.origin = origin === 'sample' ? null : origin;
 		this.cards = cardsFromAnalysis(result, () => this.nextCardId++);
 		this.phase = 'review';
-		this.message = __DEV__ && isSample ? { kind: 'info', text: SAMPLE_UI.notice } : null;
+		this.message = __DEV__ && origin === 'sample' ? { kind: 'info', text: SAMPLE_UI.notice } : null;
 		this.render();
 		void this.loadKnownPhrases();
 	}
@@ -281,6 +299,7 @@ export class ImportModal extends Modal {
 	// ── Review ───────────────────────────────────────────────────────────────
 
 	private clearReview(): void {
+		this.origin = null;
 		this.report = null;
 		this.cards = [];
 		this.cardViews.clear();
@@ -570,6 +589,7 @@ export class ImportModal extends Modal {
 			root.createEl('p', { cls: 'phrasevault-review-status', text: REVIEW.status[analysis.status] });
 			if (analysis.suggestions.length === 0) root.createEl('p', { cls: 'phrasevault-review-status', text: REVIEW.noSuggestions });
 		}
+		if (this.origin !== null) renderCostSummary(root, this.origin.usage, { reused: this.origin.reused, log: this.plugin.settings.usage });
 
 		const list = root.createDiv({ cls: 'phrasevault-cards' });
 		this.cardViews.clear();

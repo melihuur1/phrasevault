@@ -55,8 +55,8 @@ async function importScreenshot(width = 1280, height = 720): Promise<ImportedIma
 }
 
 async function analyze(image: ImportedImage, send: SendMessage): Promise<CardState[]> {
-	const result = await analyzeScreenshot(send, { base64: bytesToBase64(image.bytes), mediaType: 'image/png' }, { model: DEFAULT_MODEL });
-	return cardsFromAnalysis(result, ids);
+	const { analysis } = await analyzeScreenshot(send, { base64: bytesToBase64(image.bytes), mediaType: 'image/png' }, { model: DEFAULT_MODEL });
+	return cardsFromAnalysis(analysis, ids);
 }
 
 function request(image: ImportedImage | null, drafts: SaveRequest['drafts']): SaveRequest {

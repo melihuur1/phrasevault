@@ -3,6 +3,7 @@
 import type { AnalyzeErrorCode } from '../ai/analyze';
 import type { AnalysisStatus } from '../ai/schema';
 import type { ClipboardProblem } from '../clipboard';
+import type { CostUnavailableReason } from '../core/cost';
 import type { ApiImageRejection, ImageProblem } from '../core/imageInput';
 import type { PhraseCategory } from '../core/types';
 import type { SaveFailureReason } from '../vault/vaultStore';
@@ -170,6 +171,77 @@ export const ANALYZE_ERRORS: Record<AnalyzeErrorCode, string> = {
 	invalid_response: 'Yapay zekâ geçersiz bir yanıt döndürdü. Tekrar deneyin veya ifadeyi elle ekleyin.',
 	unknown: 'Beklenmeyen bir hata oluştu. Tekrar deneyin veya ifadeyi elle ekleyin.',
 };
+
+export const COST = {
+	estimated: (amount: string) => `Tahmini maliyet: ${amount}`,
+	unavailable: 'Maliyet hesaplanamadı',
+	tokens: (input: number, output: number) => `giriş ${input} · çıkış ${output} token`,
+	reused: 'Önceki analiz gösteriliyor; yeniden ücretlendirilmedi.',
+	model: (model: string) => `Model: ${model}`,
+	requestedAt: (when: string) => `İstek zamanı: ${when}`,
+	inputTokens: (n: number) => `Giriş: ${n} token (ekran görüntüsü dahil)`,
+	outputTokens: (n: number) => `Çıkış: ${n} token (modelin düşünme adımları dahil)`,
+	cacheTokens: (write: number, read: number) => `Önbellek: ${write} token yazma, ${read} token okuma`,
+	pricing: (date: string) => `Anthropic’in standart API fiyatlarıyla hesaplandı (${date} itibarıyla).`,
+	total: (amount: string, count: number) => `Bu cihazdaki toplam: ${amount} (${count} analiz)`,
+	disclaimer: 'Bu tutar, API yanıtındaki token sayılarından yerel olarak hesaplanan bir tahmindir. Kesin tutar Anthropic Console’daki faturanızda görünür.',
+	billedFailure: (amount: string) => `Bu yanıt kullanılamadı ancak ücretlendirilmiş olabilir. Tahmini maliyet: ${amount}.`,
+	reasons: {
+		no_usage: 'API yanıtı token kullanımını bildirmedi.',
+		unknown_model: 'Bu model için PhraseVault’ta fiyat bilgisi yok.',
+		unsupported_tier: 'İstek standart dışı bir hizmet katmanında (ör. Priority Tier) işlendi.',
+		unsupported_speed: 'İstek, fiyatı bilinmeyen hızlı modda işlendi.',
+		unsupported_region: 'İstek, fiyatı bilinmeyen bir bölgede işlendi.',
+		unknown_cache_ttl: 'Önbelleğe yazılan tokenların süresi bildirilmedi.',
+	} satisfies Record<CostUnavailableReason, string>,
+} as const;
+
+export const SETTINGS = {
+	apiKeyName: 'Anthropic API anahtarı',
+	apiKeyDesc: 'Anahtar, Obsidian’ın gizli anahtar deposunda saklanır. Eklenti ayarlarında yalnızca anahtarın adı tutulur; anahtarın kendisi hiçbir dosyaya yazılmaz.',
+	modelName: 'Model',
+	modelDesc: (defaultModel: string) => `Kullanılacak Claude modeli. Varsayılan: ${defaultModel}`,
+	privacyHeading: 'Gizlilik ve maliyet',
+	privacyName: 'Gönderilen veriler',
+	privacyDesc:
+		'“Analiz et” düğmesine bastığınızda yalnızca önizlemede gördüğünüz ekran görüntüsü ve sabit bir talimat metni Anthropic API’ye gönderilir. Kasanızdaki diğer notlar hiçbir zaman gönderilmez. Ekran görüntüsünde kişisel bilgi varsa göndermeden önce kontrol edin.',
+	costName: 'Maliyet',
+	costDesc:
+		'API kullanımı Claude Pro aboneliğine dahil değildir; Anthropic Console üzerinden ön ödemeli kredi gerekir. Claude Haiku 5.5 ile bir ekran görüntüsünün analizi genellikle 0,001–0,002 ABD doları tutar; her analizin tahmini maliyeti sonuç ekranında gösterilir.',
+	usageHeading: 'Kullanım ve tahmini maliyet',
+	usageTotalName: 'Toplam tahmini maliyet',
+	usageEmpty: 'Henüz kayıtlı analiz yok.',
+	usageTotal: (amount: string, priced: number, unpriced: number, since: string) =>
+		`${amount} · ${priced} analiz${unpriced > 0 ? `, ${unpriced} analizin maliyeti hesaplanamadı` : ''} · ${since} tarihinden beri`,
+	usageRecentName: 'Son analizler',
+	usageRecentEmpty: 'Kayıt yok.',
+	usageRecentDesc: 'Bu cihazda saklanır; yalnızca tarih, model, token sayıları ve tahmini tutar tutulur (görsel veya anahtar yok).',
+	usageRecord: (when: string, model: string, input: number, output: number, amount: string) =>
+		`${when} · ${model} · giriş ${input} / çıkış ${output} token · ${amount}`,
+	usageDisclaimerName: 'Tahminin sınırları',
+	usageDisclaimer: (date: string) =>
+		`Tutarlar, API’nin bildirdiği token sayıları ve Anthropic’in yayımladığı fiyatlar (${date} itibarıyla) kullanılarak yerel olarak hesaplanır. Fatura tutarıyla birebir aynı olmayabilir; kesin tutar Anthropic Console’da görünür. İptal edilen veya zaman aşımına uğrayan istekler yanıt gelmediği için sayılamaz.`,
+	resetButton: 'Geçmişi sıfırla',
+	resetTitle: 'Kullanım geçmişi sıfırlansın mı?',
+	resetMessage: 'Bu cihazdaki tahmini maliyet toplamı ve son analiz kayıtları silinir. Notlarınız ve Anthropic hesabınız etkilenmez.',
+	resetConfirm: 'Sıfırla',
+	resetCancel: 'Vazgeç',
+	resetDone: 'PhraseVault: kullanım geçmişi sıfırlandı.',
+} as const;
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** "2026-11-18T10:30:00Z" → "18.11.2026 13:30" in local time. */
+export function formatDateTime(iso: string): string {
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return iso;
+	return `${pad2(date.getDate())}.${pad2(date.getMonth() + 1)}.${date.getFullYear()} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+}
+
+/** "2026-11-18T10:30:00Z" → "18.11.2026" in local time. */
+export function formatDate(iso: string): string {
+	return formatDateTime(iso).split(' ')[0] ?? iso;
+}
 
 export function formatBytes(bytes: number): string {
 	if (bytes < 1024) return `${bytes} B`;
