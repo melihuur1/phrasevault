@@ -1,0 +1,28 @@
+# editors
+.vscode
+*.iml
+.idea
+
+# npm
+node_modules
+
+# Build output — uploaded to GitHub releases instead of committed
+main.js
+*.map
+
+# Obsidian plugin data (holds only the secret *name*, but never commit it)
+data.json
+
+# Disposable development vault (never commit test notes or local secrets)
+dev-vault/
+
+# Local environment files — API keys must never be stored here
+.env
+.env.*
+
+# Test output
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db

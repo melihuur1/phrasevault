@@ -1,0 +1,9 @@
+{
+	"id": "phrasevault",
+	"name": "PhraseVault",
+	"version": "0.1.0",
+	"minAppVersion": "1.11.4",
+	"description": "Turn screenshots of English text into numbered, AI-annotated phrase notes.",
+	"author": "Melih",
+	"isDesktopOnly": true
+}
