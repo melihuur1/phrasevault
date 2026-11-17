@@ -100,6 +100,12 @@ export class ImportModal extends Modal {
 	onOpen(): void {
 		this.modalEl.addClass('phrasevault-modal');
 		this.modalEl.doc.addEventListener('paste', this.onPaste);
+		// Ctrl/Cmd+Enter saves from anywhere in the review, including text fields.
+		this.scope.register(['Mod'], 'Enter', () => {
+			if (this.phase !== 'review') return true;
+			void this.save();
+			return false;
+		});
 		this.render();
 		void this.handleImportRequest(this.initialSource);
 	}
@@ -581,7 +587,8 @@ export class ImportModal extends Modal {
 		new ButtonComponent(actions)
 			.setButtonText(UI.close)
 			.setCta()
-			.onClick(() => this.close());
+			.onClick(() => this.close())
+			.buttonEl.focus();
 	}
 
 	private renderMessage(root: HTMLElement): void {
@@ -616,8 +623,9 @@ export class ImportModal extends Modal {
 		drop.createEl('p', { cls: 'phrasevault-empty-subhint', text: UI.emptySubHint });
 		this.renderMessage(root);
 		const actions = root.createDiv({ cls: 'phrasevault-actions' });
-		new ButtonComponent(actions).setButtonText(UI.pasteFromClipboard).setCta().onClick(() => void this.importFromClipboard());
+		const paste = new ButtonComponent(actions).setButtonText(UI.pasteFromClipboard).setCta().onClick(() => void this.importFromClipboard());
 		new ButtonComponent(actions).setButtonText(UI.chooseFile).onClick(() => void this.importFromFile());
+		paste.buttonEl.focus();
 	}
 
 	private renderPreview(root: HTMLElement): void {
@@ -633,11 +641,14 @@ export class ImportModal extends Modal {
 		if (__DEV__) new ButtonComponent(actions).setButtonText(SAMPLE_UI.button).onClick(() => this.runSampleAnalysis());
 		const hasCache = this.plugin.getCachedAnalysis(image.hash) !== undefined;
 		if (hasCache) new ButtonComponent(actions).setButtonText(UI.analyzeAgain).onClick(() => void this.analyze({ force: true }));
-		new ButtonComponent(actions)
+		// The main action has the focus, so Enter starts it — always an explicit key press.
+		const primary = new ButtonComponent(actions)
 			.setButtonText(hasCache ? UI.useCachedAnalysis : UI.analyze)
+			.setTooltip(UI.analyzeShortcut)
 			.setCta()
 			.onClick(() => void this.analyze({ force: false }));
 		this.renderNextNumber(root);
+		primary.buttonEl.focus();
 	}
 
 	private renderAnalyzing(root: HTMLElement): void {
@@ -646,7 +657,7 @@ export class ImportModal extends Modal {
 		status.createDiv({ cls: 'phrasevault-spinner', attr: { 'aria-hidden': 'true' } });
 		status.createSpan({ text: UI.analyzing });
 		const actions = root.createDiv({ cls: 'phrasevault-actions' });
-		new ButtonComponent(actions).setButtonText(UI.cancel).onClick(() => this.cancelAnalysis());
+		new ButtonComponent(actions).setButtonText(UI.cancel).onClick(() => this.cancelAnalysis()).buttonEl.focus();
 	}
 
 	private renderReview(root: HTMLElement): void {
@@ -683,7 +694,10 @@ export class ImportModal extends Modal {
 		this.renderNextNumber(footer);
 		const actions = footer.createDiv({ cls: 'phrasevault-actions' });
 		new ButtonComponent(actions).setButtonText(UI.backToPreview).onClick(() => this.discardThen(() => this.backToPreview()));
-		this.saveButton = new ButtonComponent(actions).setCta().onClick(() => void this.save());
+		this.saveButton = new ButtonComponent(actions)
+			.setCta()
+			.setTooltip(REVIEW.saveShortcut)
+			.onClick(() => void this.save());
 
 		const saving = this.phase === 'saving';
 		if (saving) for (const view of this.cardViews.values()) view.setDisabled(true);

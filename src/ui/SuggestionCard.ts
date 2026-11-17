@@ -1,4 +1,4 @@
-import { DropdownComponent, ExtraButtonComponent, TextAreaComponent, TextComponent } from 'obsidian';
+import { ButtonComponent, DropdownComponent, TextAreaComponent, TextComponent } from 'obsidian';
 import { formatNumber } from '../core/numbering';
 import { PHRASE_CATEGORIES, isPhraseCategory } from '../core/types';
 import { CATEGORY_LABELS, REVIEW } from '../i18n/tr';
@@ -47,9 +47,11 @@ export class SuggestionCard {
 		this.titleEl = header.createSpan({ cls: 'phrasevault-card-title' });
 		this.badgesEl = header.createDiv({ cls: 'phrasevault-badges' });
 		if (state.manual) {
-			new ExtraButtonComponent(header)
+			// A real <button>, so it can be reached and pressed with the keyboard.
+			new ButtonComponent(header)
 				.setIcon('trash-2')
 				.setTooltip(REVIEW.remove)
+				.setClass('clickable-icon')
 				.onClick(() => {
 					if (!this.disabled) callbacks.onRemove(this);
 				});
