@@ -12,6 +12,7 @@ import {
 	ANALYZE_ERRORS,
 	CLIPBOARD_PROBLEMS,
 	COST,
+	DISCARD,
 	DONE,
 	formatBytes,
 	IMAGE_PROBLEMS,
@@ -24,6 +25,7 @@ import {
 import { prepareApiImage } from '../imagePrep';
 import { INDEX_PATH } from '../constants';
 import type PhraseVaultPlugin from '../main';
+import { confirmAction } from './ConfirmModal';
 import { costLabel, renderCostSummary } from './costView';
 import type { SaveReport } from '../vault/vaultStore';
 import {
@@ -31,8 +33,10 @@ import {
 	cardsFromAnalysis,
 	describeNumberRange,
 	evaluateCards,
+	hasUnsavedChanges,
 	planSave,
 	remainingCardsAfterSave,
+	snapshotCards,
 	type CardState,
 } from './reviewModel';
 import { SuggestionCard } from './SuggestionCard';
@@ -67,10 +71,15 @@ export class ImportModal extends Modal {
 	private origin: ApiOrigin | null = null;
 	private closed = false;
 	private busyLoading = false;
+	/** Set once leaving is confirmed (or nothing can be lost), so close() goes through. */
+	private closeConfirmed = false;
+	private confirmingDiscard = false;
 
 	// Review state
 	private cards: CardState[] = [];
 	private cardViews = new Map<number, SuggestionCard>();
+	/** Card states the user has not changed since they appeared (or since the last save). */
+	private baseline = new Map<number, string>();
 	private known: KnownPhrase[] = [];
 	private attemptedSave = false;
 	private saveButton: ButtonComponent | null = null;
@@ -108,6 +117,59 @@ export class ImportModal extends Modal {
 		return this.phase === 'analyzing' || this.phase === 'saving' || this.busyLoading;
 	}
 
+	// ── Leaving without losing edits ─────────────────────────────────────────
+
+	/** Edited or not-yet-saved suggestions that closing or starting over would discard. */
+	hasUnsavedChanges(): boolean {
+		if (this.phase !== 'review' && this.phase !== 'done') return false;
+		return hasUnsavedChanges(this.cards, this.baseline);
+	}
+
+	/**
+	 * Every normal way of closing ends up here: Escape, a click outside the
+	 * window, the close button, and our own buttons. Asks first when edits
+	 * would be lost.
+	 */
+	close(): void {
+		if (this.closed || this.closeConfirmed || !this.hasUnsavedChanges()) {
+			super.close();
+			return;
+		}
+		void this.confirmDiscard().then((discard) => {
+			if (discard) this.forceClose();
+		});
+	}
+
+	/** Closes without asking (plugin unload, or after the user chose to discard). */
+	forceClose(): void {
+		this.closeConfirmed = true;
+		super.close();
+	}
+
+	/** Resolves true when nothing would be lost or the user chose "Değişiklikleri at". */
+	private async confirmDiscard(): Promise<boolean> {
+		if (!this.hasUnsavedChanges()) return true;
+		if (this.confirmingDiscard) return false;
+		this.confirmingDiscard = true;
+		try {
+			return await confirmAction(this.app, {
+				title: DISCARD.title,
+				message: DISCARD.message,
+				confirmText: DISCARD.discard,
+				cancelText: DISCARD.keepEditing,
+			});
+		} finally {
+			this.confirmingDiscard = false;
+		}
+	}
+
+	/** Runs an action that throws the current cards away, after confirming if needed. */
+	private discardThen(action: () => void): void {
+		void this.confirmDiscard().then((discard) => {
+			if (discard && !this.closed) action();
+		});
+	}
+
 	/** Called by commands; a second import while open loads into this window. */
 	async handleImportRequest(source: ImportSource): Promise<void> {
 		if (source === 'none') return;
@@ -115,7 +177,7 @@ export class ImportModal extends Modal {
 			new Notice(UI.busy);
 			return;
 		}
-		if (this.phase === 'review') {
+		if (this.phase === 'review' || this.hasUnsavedChanges()) {
 			new Notice(UI.finishReviewFirst);
 			return;
 		}
@@ -134,7 +196,7 @@ export class ImportModal extends Modal {
 			new Notice(UI.busy);
 			return;
 		}
-		if (this.phase === 'review') {
+		if (this.phase === 'review' || this.hasUnsavedChanges()) {
 			new Notice(UI.finishReviewFirst);
 			return;
 		}
@@ -290,6 +352,7 @@ export class ImportModal extends Modal {
 		this.analysis = result;
 		this.origin = origin === 'sample' ? null : origin;
 		this.cards = cardsFromAnalysis(result, () => this.nextCardId++);
+		this.baseline = snapshotCards(this.cards);
 		this.phase = 'review';
 		this.message = __DEV__ && origin === 'sample' ? { kind: 'info', text: SAMPLE_UI.notice } : null;
 		this.render();
@@ -302,6 +365,7 @@ export class ImportModal extends Modal {
 		this.origin = null;
 		this.report = null;
 		this.cards = [];
+		this.baseline = new Map();
 		this.cardViews.clear();
 		this.known = [];
 		this.attemptedSave = false;
@@ -417,7 +481,10 @@ export class ImportModal extends Modal {
 		if (this.closed) return;
 
 		// Cards whose note was created are done; the rest stay available for a retry.
+		// Cards that were not part of this save count as untouched; failed ones still need saving.
+		const attempted = new Set(plan.cardIds);
 		this.cards = remainingCardsAfterSave(this.cards, plan.cardIds, created.length);
+		this.baseline = snapshotCards(this.cards.filter((card) => !attempted.has(card.id)));
 		this.report = report;
 		this.phase = 'done';
 		this.render();
@@ -433,7 +500,8 @@ export class ImportModal extends Modal {
 	}
 
 	private async openPath(path: string): Promise<void> {
-		this.close();
+		if (!(await this.confirmDiscard())) return;
+		this.forceClose();
 		await this.app.workspace.openLinkText(path, '', false);
 	}
 
@@ -506,7 +574,7 @@ export class ImportModal extends Modal {
 			new ButtonComponent(actions).setButtonText(DONE.retryRemaining(this.cards.length)).onClick(() => this.retryRemaining());
 		}
 		new ButtonComponent(actions).setButtonText(DONE.openIndex).onClick(() => void this.openPath(INDEX_PATH));
-		new ButtonComponent(actions).setButtonText(UI.newImage).onClick(() => this.resetToEmpty());
+		new ButtonComponent(actions).setButtonText(UI.newImage).onClick(() => this.discardThen(() => this.resetToEmpty()));
 		new ButtonComponent(actions)
 			.setButtonText(UI.close)
 			.setCta()
@@ -611,7 +679,7 @@ export class ImportModal extends Modal {
 		const footer = root.createDiv({ cls: 'phrasevault-footer' });
 		this.renderNextNumber(footer);
 		const actions = footer.createDiv({ cls: 'phrasevault-actions' });
-		new ButtonComponent(actions).setButtonText(UI.backToPreview).onClick(() => this.backToPreview());
+		new ButtonComponent(actions).setButtonText(UI.backToPreview).onClick(() => this.discardThen(() => this.backToPreview()));
 		this.saveButton = new ButtonComponent(actions).setCta().onClick(() => void this.save());
 
 		const saving = this.phase === 'saving';

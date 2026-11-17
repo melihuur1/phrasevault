@@ -48,7 +48,7 @@ export const UI = {
 	nextNumber: (id: string) => `Sıradaki numara: ${id}`,
 	imageMeta: (width: number, height: number, format: string, size: string) => `${width} × ${height} px · ${format} · ${size}`,
 	busy: 'PhraseVault şu anda meşgul; işlem bitince tekrar deneyin.',
-	finishReviewFirst: 'Yeni görüntü için önce mevcut önerileri kaydedin veya “Yeni görüntü”yü seçin.',
+	finishReviewFirst: 'Yeni görüntü eklemeden önce mevcut önerileri kaydedin ya da “Önizlemeye dön” ile vazgeçin.',
 	newImage: 'Yeni görüntü',
 	backToPreview: 'Önizlemeye dön',
 	close: 'Kapat',
@@ -94,6 +94,13 @@ export const REVIEW = {
 		explanation: 'Kısa Türkçe açıklama',
 		sourceSentence: 'İfadenin geçtiği cümle',
 	},
+} as const;
+
+export const DISCARD = {
+	title: 'Kaydedilmemiş değişiklikler',
+	message: 'Düzenlediğiniz ya da henüz kaydedilmemiş öneriler var. Devam ederseniz bu değişiklikler kaybolur.',
+	keepEditing: 'Düzenlemeye devam et',
+	discard: 'Değişiklikleri at',
 } as const;
 
 export const DONE = {

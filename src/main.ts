@@ -57,6 +57,7 @@ export default class PhraseVaultPlugin extends Plugin {
 	}
 
 	onunload(): void {
+		this.activeImport?.forceClose();
 		this.analysisCache.clear();
 	}
 

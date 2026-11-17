@@ -127,6 +127,42 @@ export function remainingCardsAfterSave(
 	return cards.filter((card) => !done.has(card.id)).map((card) => ({ ...card, overrideDuplicate: false }));
 }
 
+/** Everything the user can change on a card, as a comparable value. */
+export function snapshotCard(card: CardState): string {
+	return JSON.stringify([
+		card.phrase,
+		card.originalText,
+		card.category,
+		card.turkishMeaning,
+		card.explanation,
+		card.sourceSentence,
+		card.selected,
+		card.overrideDuplicate,
+	]);
+}
+
+export function snapshotCards(cards: ReadonlyArray<CardState>): Map<number, string> {
+	return new Map(cards.map((card) => [card.id, snapshotCard(card)]));
+}
+
+function hasContent(card: CardState): boolean {
+	return [card.phrase, card.originalText, card.turkishMeaning, card.explanation, card.sourceSentence].some((value) => value.trim() !== '');
+}
+
+/**
+ * True when discarding the cards would lose something: an edited suggestion,
+ * a manual card with content, or a card that was meant to be saved but was not
+ * (cards missing from `baseline`). Untouched AI suggestions are not "unsaved":
+ * the same analysis can be shown again from this session's cache for free.
+ */
+export function hasUnsavedChanges(cards: ReadonlyArray<CardState>, baseline: ReadonlyMap<number, string>): boolean {
+	return cards.some((card) => {
+		const saved = baseline.get(card.id);
+		if (saved !== undefined) return saved !== snapshotCard(card);
+		return card.manual ? hasContent(card) : true;
+	});
+}
+
 /** "0004" for one number, "0004–0006" for a consecutive run, otherwise a list. */
 export function describeNumberRange(numbers: ReadonlyArray<number>): string {
 	const sorted = [...numbers].sort((a, b) => a - b);

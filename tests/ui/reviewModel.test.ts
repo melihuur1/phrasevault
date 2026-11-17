@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { parseAnalysisText } from '../../src/ai/validate';
 import type { KnownPhrase } from '../../src/core/types';
-import { blankCard, cardsFromAnalysis, describeNumberRange, evaluateCards, planSave, remainingCardsAfterSave, type CardState } from '../../src/ui/reviewModel';
+import {
+	blankCard,
+	cardsFromAnalysis,
+	describeNumberRange,
+	evaluateCards,
+	hasUnsavedChanges,
+	planSave,
+	remainingCardsAfterSave,
+	snapshotCards,
+	type CardState,
+} from '../../src/ui/reviewModel';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -110,6 +120,64 @@ describe('remainingCardsAfterSave', () => {
 		const remaining = remainingCardsAfterSave(list, [1, 2, 3], 1);
 		expect(remaining.map((c) => c.id)).toEqual([2, 3, 4]);
 		expect(remaining.every((c) => !c.overrideDuplicate)).toBe(true);
+	});
+});
+
+describe('hasUnsavedChanges', () => {
+	const fresh = () => cardsFromAnalysis(parseAnalysisText(fixture('unmarked.json')), ids());
+
+	it('is false for untouched AI suggestions (they can be shown again for free)', () => {
+		const cards = fresh();
+		expect(hasUnsavedChanges(cards, snapshotCards(cards))).toBe(false);
+	});
+
+	it('is false when there are no cards', () => {
+		expect(hasUnsavedChanges([], new Map())).toBe(false);
+	});
+
+	it.each([
+		['an edited meaning', (c: CardState) => ({ ...c, turkishMeaning: 'tükenmek' })],
+		['an edited phrase', (c: CardState) => ({ ...c, phrase: 'run out' })],
+		['a changed category', (c: CardState) => ({ ...c, category: 'idiom' as const })],
+		['a deselected card', (c: CardState) => ({ ...c, selected: false })],
+		['a confirmed duplicate', (c: CardState) => ({ ...c, overrideDuplicate: true })],
+	])('is true after %s', (_label, edit) => {
+		const cards = fresh();
+		const baseline = snapshotCards(cards);
+		const [first, ...rest] = cards;
+		if (first === undefined) throw new Error('fixture');
+		expect(hasUnsavedChanges([edit(first), ...rest], baseline)).toBe(true);
+	});
+
+	it('is false again when an edit is undone', () => {
+		const cards = fresh();
+		const baseline = snapshotCards(cards);
+		const first = cards[0];
+		if (first === undefined) throw new Error('fixture');
+		const original = first.turkishMeaning;
+		first.turkishMeaning = 'x';
+		first.turkishMeaning = original;
+		expect(hasUnsavedChanges(cards, baseline)).toBe(false);
+	});
+
+	it('ignores an empty manual card but not one with content', () => {
+		const blank = blankCard(10);
+		expect(hasUnsavedChanges([blank], new Map())).toBe(false);
+		expect(hasUnsavedChanges([{ ...blank, category: 'idiom' }], new Map())).toBe(false);
+		expect(hasUnsavedChanges([{ ...blank, phrase: 'come across' }], new Map())).toBe(true);
+		expect(hasUnsavedChanges([{ ...blank, explanation: ' not empty ' }], new Map())).toBe(true);
+	});
+
+	it('treats cards that failed to save as unsaved, but not cards left unselected on purpose', () => {
+		const cards = fresh(); // ids 1, 2, 3
+		const deselected = cards.map((c) => (c.id === 2 ? { ...c, selected: false } : c));
+		// Card 1 was saved, card 3 failed; card 2 was not part of the save.
+		const remaining = remainingCardsAfterSave(deselected, [1, 3], 1);
+		const attempted = new Set([1, 3]);
+		const baseline = snapshotCards(remaining.filter((c) => !attempted.has(c.id)));
+		expect(remaining.map((c) => c.id)).toEqual([2, 3]);
+		expect(hasUnsavedChanges(remaining, baseline)).toBe(true);
+		expect(hasUnsavedChanges(remaining.filter((c) => c.id === 2), baseline)).toBe(false);
 	});
 });
 
