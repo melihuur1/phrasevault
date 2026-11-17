@@ -41,6 +41,8 @@ export function isSourceMismatch(original: string, sentence: string): boolean {
 }
 
 const clean = (text: string): string => text.replace(/\s+/g, ' ').trim();
+/** A meaning is a short gloss ("ertelemek"), so a single closing period is dropped; an ellipsis stays. */
+const cleanMeaning = (text: string): string => clean(text).replace(/(?<!\.)\.$/, '').trim();
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -88,7 +90,7 @@ export function parseAnalysisText(text: string): AnalysisResult {
 	const suggestions: Suggestion[] = [];
 	for (const item of parsed.suggestions) {
 		const phrase = clean(item.phrase);
-		const turkishMeaning = clean(item.turkishMeaning);
+		const turkishMeaning = cleanMeaning(item.turkishMeaning);
 		if (phrase === '' || turkishMeaning === '') continue;
 		const key = normalizePhrase(phrase);
 		if (key === '' || seen.has(key)) continue;

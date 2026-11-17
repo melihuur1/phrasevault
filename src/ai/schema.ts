@@ -27,11 +27,20 @@ export interface RawAnalysis {
 const SUGGESTION_JSON_SCHEMA = {
 	type: 'object',
 	properties: {
-		phrase: { type: 'string', description: 'Dictionary/canonical form, e.g. "put off" for "putting off".' },
-		originalText: { type: 'string', description: 'The expression exactly as it appears in the screenshot.' },
+		phrase: { type: 'string', description: 'Dictionary form without inflection, e.g. "put off" for "putting off".' },
+		originalText: {
+			type: 'string',
+			description: 'The expression exactly as written in the screenshot, with its inflection; it appears in sourceSentence.',
+		},
 		category: { type: 'string', enum: [...PHRASE_CATEGORIES] },
-		turkishMeaning: { type: 'string', description: 'Short Turkish meaning that fits this context.' },
-		explanation: { type: 'string', description: 'One or two short Turkish sentences explaining usage in this context.' },
+		turkishMeaning: {
+			type: 'string',
+			description: 'Natural Turkish equivalent of the meaning in this sentence (usually 1-4 words, verbs in -mak/-mek form); not a word-by-word translation.',
+		},
+		explanation: {
+			type: 'string',
+			description: 'One or two short Turkish sentences (about 25 words at most) on nuance, tone, or usage; does not repeat turkishMeaning.',
+		},
 		sourceSentence: {
 			type: 'string',
 			description: 'The full sentence containing the expression, copied verbatim from the screenshot; empty string if not readable.',

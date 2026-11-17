@@ -66,6 +66,30 @@ describe('parseAnalysisText — cleaning', () => {
 		const giveUp = result.suggestions.find((s) => s.phrase === 'give up');
 		expect(giveUp?.sourceMismatch).toBe(true);
 	});
+
+	it('drops a closing period from the short Turkish meaning but keeps an ellipsis and the explanation as written', () => {
+		const one = (turkishMeaning: string) =>
+			parseAnalysisText(
+				JSON.stringify({
+					status: 'unmarked',
+					suggestions: [
+						{
+							phrase: 'put off',
+							originalText: 'putting off',
+							category: 'phrasal_verb',
+							turkishMeaning,
+							explanation: 'Sonraya bırakmak.',
+							sourceSentence: 'They kept putting off the meeting.',
+							highlighted: false,
+						},
+					],
+				}),
+			).suggestions[0];
+		expect(one('ertelemek.')?.turkishMeaning).toBe('ertelemek');
+		expect(one('ertelemek')?.turkishMeaning).toBe('ertelemek');
+		expect(one('bir şeyi …yapmak...')?.turkishMeaning).toBe('bir şeyi …yapmak...');
+		expect(one('ertelemek.')?.explanation).toBe('Sonraya bırakmak.');
+	});
 });
 
 describe('parseAnalysisText — invalid responses', () => {
