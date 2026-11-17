@@ -1,10 +1,12 @@
 import { Notice, Plugin } from 'obsidian';
 import type { AnalysisResult } from './ai/validate';
+import type { IndexRepairPlan } from './core/indexRepair';
 import { addUsageRecord, createUsageRecord, emptyUsageLog, type ResponseBilling, type UsageRecord } from './core/usageLog';
-import { COMMANDS, STRUCTURE } from './i18n/tr';
+import { COMMANDS, REPAIR, STRUCTURE } from './i18n/tr';
 import { PhraseVaultSettingTab } from './settings';
 import { DEFAULT_SETTINGS, sanitizeSettings, type PhraseVaultSettings } from './settingsData';
 import { ImportModal, type ImportSource } from './ui/ImportModal';
+import { RepairModal } from './ui/RepairModal';
 import { createObsidianVaultPort } from './vault/obsidianVaultPort';
 import type { HighWaterMark } from './vault/vaultPort';
 import { PhraseStore } from './vault/vaultStore';
@@ -52,6 +54,11 @@ export default class PhraseVaultPlugin extends Plugin {
 			id: 'prepare-structure',
 			name: COMMANDS.prepareStructure,
 			callback: () => void this.prepareStructure(),
+		});
+		this.addCommand({
+			id: 'repair-index',
+			name: COMMANDS.repairIndex,
+			callback: () => void this.repairIndex(),
 		});
 		this.addRibbonIcon('image-plus', COMMANDS.ribbon, () => this.openImport('clipboard'));
 	}
@@ -108,6 +115,22 @@ export default class PhraseVaultPlugin extends Plugin {
 	async resetUsage(): Promise<void> {
 		this.settings.usage = emptyUsageLog();
 		await this.saveSettings();
+	}
+
+	/** "İndeksi onar": checks first, then shows what would change; nothing is written without confirmation. */
+	async repairIndex(): Promise<void> {
+		let plan: IndexRepairPlan;
+		try {
+			plan = await this.store.planIndexRepair();
+		} catch {
+			new Notice(REPAIR.checkFailed);
+			return;
+		}
+		if (plan.additions.length === 0 && plan.issues.length === 0) {
+			new Notice(plan.indexExists ? REPAIR.upToDate : REPAIR.nothingToIndex);
+			return;
+		}
+		new RepairModal(this.app, this.store, plan).open();
 	}
 
 	private async prepareStructure(): Promise<void> {

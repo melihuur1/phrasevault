@@ -9,7 +9,16 @@
 
 import { ATTACHMENTS_FOLDER, INDEX_PATH, MAX_CREATE_ATTEMPTS, PHRASES_FOLDER } from '../constants';
 import { mergeKnownPhrases } from '../core/duplicates';
-import { appendEntry, createIndexContent, IndexConflictError, notePathFor, parseIndexEntries } from '../core/indexFile';
+import {
+	appendEntry,
+	createIndexContent,
+	IndexConflictError,
+	notePathFor,
+	parseIndexEntries,
+	repairIndex,
+	type IndexEntry,
+} from '../core/indexFile';
+import { planIndexRepair, type IndexRepairPlan, type NumberedNote } from '../core/indexRepair';
 import { renderNote } from '../core/noteMarkdown';
 import { nextNumber, numberFromNoteFileName } from '../core/numbering';
 import type { KnownPhrase, PhraseDraft } from '../core/types';
@@ -154,7 +163,7 @@ export class PhraseStore {
 		for (const name of this.vault.listFileNames(PHRASES_FOLDER)) {
 			const number = numberFromNoteFileName(name);
 			if (number === null) continue;
-			const fm = this.vault.getFrontmatter(`${PHRASES_FOLDER}/${name}`);
+			const fm = await this.vault.getFrontmatter(`${PHRASES_FOLDER}/${name}`);
 			const phrase = fm?.['phrase'];
 			if (typeof phrase !== 'string' || phrase.trim() === '') continue;
 			const meaning = fm?.['meaning_tr'];
@@ -167,6 +176,45 @@ export class PhraseStore {
 				.filter((entry) => entry.alias !== '')
 				.map((entry) => ({ number: entry.number, phrase: entry.alias, meaning: null }));
 		return mergeKnownPhrases(fromNotes, fromIndex);
+	}
+
+	/** Read-only comparison of the numbered notes with INDEX.md, for "İndeksi onar". */
+	planIndexRepair(): Promise<IndexRepairPlan> {
+		return this.serialize(async () => {
+			if (this.vault.kind(INDEX_PATH) === 'folder') throw new StructureError(INDEX_PATH);
+			const notes: NumberedNote[] = [];
+			for (const fileName of this.vault.listFileNames(PHRASES_FOLDER)) {
+				if (numberFromNoteFileName(fileName) === null) continue;
+				const path = `${PHRASES_FOLDER}/${fileName}`;
+				try {
+					notes.push({ fileName, content: await this.vault.read(path), frontmatter: await this.vault.getFrontmatter(path) });
+				} catch {
+					notes.push({ fileName, content: null, frontmatter: null });
+				}
+			}
+			return planIndexRepair(notes, await this.readIndexOrNull());
+		});
+	}
+
+	/**
+	 * Adds the planned entries. INDEX.md is re-checked at write time: numbers it
+	 * already refers to are skipped, and no existing line is changed. Entries
+	 * whose note has disappeared since planning are skipped too.
+	 */
+	applyIndexRepair(additions: ReadonlyArray<IndexEntry>): Promise<{ added: number[]; indexCreated: boolean }> {
+		return this.serialize(async () => {
+			const { indexCreated } = await this.ensureStructure();
+			const present = additions.filter((entry) => this.vault.kind(notePathFor(entry.number)) === 'file');
+			let added: number[] = [];
+			if (present.length > 0) {
+				await this.vault.process(INDEX_PATH, (current) => {
+					const result = repairIndex(current, present);
+					added = result.added;
+					return result.text;
+				});
+			}
+			return { added, indexCreated };
+		});
 	}
 
 	/** Creates one note at the next free number, trying the following number on a collision. */

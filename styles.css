@@ -335,3 +335,21 @@
 .phrasevault-confirm {
 	width: min(440px, 92vw);
 }
+
+/* Index repair */
+.phrasevault-repair {
+	width: min(640px, 92vw);
+}
+
+.phrasevault-repair h4 {
+	margin: var(--size-4-2) 0 0;
+}
+
+.phrasevault-repair-list {
+	margin: 0;
+	padding-left: var(--size-4-6);
+	max-height: 30vh;
+	overflow-y: auto;
+	font-size: var(--font-ui-small);
+	overflow-wrap: anywhere;
+}

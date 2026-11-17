@@ -58,6 +58,23 @@ export function referencedNumbersInIndex(indexText: string): Set<number> {
 	return numbers;
 }
 
+function entryNumbers(matches: Iterable<RegExpMatchArray>): number[] {
+	return [...matches].flatMap((match) => {
+		const n = match[1] === undefined ? null : toEntryNumber(match[1]);
+		return n === null ? [] : [n];
+	});
+}
+
+/** Note numbers a piece of INDEX.md links to, in order of appearance. */
+export function linkedNumbers(text: string): number[] {
+	return entryNumbers([...text.matchAll(WIKILINK_REF), ...text.matchAll(MARKDOWN_LINK_REF)].sort((a, b) => (a.index ?? 0) - (b.index ?? 0)));
+}
+
+/** The "0005" in a line like "0005 — …", or null. */
+export function leadingNumber(line: string): number | null {
+	return entryNumbers(line.matchAll(LEADING_NUMBER))[0] ?? null;
+}
+
 export function highestNumberInIndex(indexText: string): number {
 	let highest = 0;
 	for (const n of referencedNumbersInIndex(indexText)) {

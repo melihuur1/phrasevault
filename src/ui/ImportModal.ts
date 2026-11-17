@@ -570,6 +570,9 @@ export class ImportModal extends Modal {
 		}
 
 		const actions = root.createDiv({ cls: 'phrasevault-actions' });
+		if (report.notIndexed.length > 0 || report.indexCreated) {
+			new ButtonComponent(actions).setButtonText(DONE.repairIndex).onClick(() => void this.plugin.repairIndex());
+		}
 		if (this.cards.length > 0) {
 			new ButtonComponent(actions).setButtonText(DONE.retryRemaining(this.cards.length)).onClick(() => this.retryRemaining());
 		}

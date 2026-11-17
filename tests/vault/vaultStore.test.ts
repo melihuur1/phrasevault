@@ -296,3 +296,86 @@ describe('knownPhrases', () => {
 		]);
 	});
 });
+
+describe('index repair', () => {
+	async function noteWithoutIndexLine(): Promise<void> {
+		vault.beforeProcess = () => {
+			vault.beforeProcess = null;
+			throw new Error('INDEX.md is locked');
+		};
+		await store.saveBatch({ image: null, drafts: [draft('put off')], createdDate: DATE });
+	}
+
+	it('restores the entry of a note whose index line failed, without touching the note or other lines', async () => {
+		await store.saveBatch({ image: null, drafts: [draft('come across')], createdDate: DATE });
+		await noteWithoutIndexLine(); // 0002 has no index line
+		await store.saveBatch({ image: null, drafts: [draft('give up')], createdDate: DATE });
+		const noteBefore = vault.text('Phrases/0002.md');
+		const writesBefore = vault.writes.length;
+
+		const plan = await store.planIndexRepair();
+		expect(plan.additions).toEqual([{ number: 2, alias: 'put off' }]);
+		expect(plan.issues).toEqual([]);
+
+		const result = await store.applyIndexRepair(plan.additions);
+		expect(result).toEqual({ added: [2], indexCreated: false });
+		expect(vault.text('INDEX.md')).toBe(`${HEADER}${entryLine('0001', 'come across')}\n${entryLine('0002', 'put off')}\n${entryLine('0003', 'give up')}\n`);
+		expect(vault.text('Phrases/0002.md')).toBe(noteBefore);
+		expect(vault.writes.slice(writesBefore)).toEqual(['process INDEX.md']);
+	});
+
+	it('keeps numbering going after a repair', async () => {
+		await noteWithoutIndexLine();
+		await store.applyIndexRepair((await store.planIndexRepair()).additions);
+		const next = await store.saveBatch({ image: null, drafts: [draft('b')], createdDate: DATE });
+		expect(next.saved.map((e) => e.number)).toEqual([2]);
+	});
+
+	it('re-checks INDEX.md at write time and never adds an entry twice', async () => {
+		await noteWithoutIndexLine();
+		const plan = await store.planIndexRepair();
+		// The user adds the line by hand between the check and the repair.
+		vault.beforeProcess = () => {
+			vault.beforeProcess = null;
+			vault.seedFile('INDEX.md', `${HEADER}0001 — put off (by hand)\n`);
+		};
+		const result = await store.applyIndexRepair(plan.additions);
+		expect(result.added).toEqual([]);
+		expect(vault.text('INDEX.md')).toBe(`${HEADER}0001 — put off (by hand)\n`);
+	});
+
+	it('skips an entry whose note was deleted after the check', async () => {
+		await noteWithoutIndexLine();
+		const plan = await store.planIndexRepair();
+		vault.delete('Phrases/0001.md');
+		expect((await store.applyIndexRepair(plan.additions)).added).toEqual([]);
+		expect(vault.text('INDEX.md')).toBe(HEADER);
+	});
+
+	it('recreates a missing INDEX.md and lists every note again', async () => {
+		await store.saveBatch({ image: null, drafts: [draft('a'), draft('b')], createdDate: DATE });
+		vault.delete('INDEX.md');
+		const plan = await store.planIndexRepair();
+		expect(plan.indexExists).toBe(false);
+		const result = await store.applyIndexRepair(plan.additions);
+		expect(result).toEqual({ added: [1, 2], indexCreated: true });
+		expect(vault.text('INDEX.md')).toBe(`${HEADER}${entryLine('0001', 'a')}\n${entryLine('0002', 'b')}\n`);
+	});
+
+	it('reports a hand-made note without frontmatter instead of guessing its name', async () => {
+		await store.ensureStructure();
+		vault.seedFile('Phrases/0004.md', 'my own note');
+		const plan = await store.planIndexRepair();
+		expect(plan.additions).toEqual([]);
+		expect(plan.issues).toEqual([{ kind: 'no_phrase', number: 4, path: 'Phrases/0004.md' }]);
+	});
+
+	it('reports an unreadable note instead of failing', async () => {
+		await store.ensureStructure();
+		vault.seedFile('Phrases/0001.md', 'x');
+		const originalRead = vault.read.bind(vault);
+		vault.read = (path: string) => (path === 'Phrases/0001.md' ? Promise.reject(new Error('locked')) : originalRead(path));
+		const plan = await store.planIndexRepair();
+		expect(plan.issues).toEqual([{ kind: 'unreadable_note', number: 1, path: 'Phrases/0001.md' }]);
+	});
+});

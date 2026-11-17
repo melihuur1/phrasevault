@@ -1,5 +1,20 @@
-import { App, normalizePath, TFile, TFolder } from 'obsidian';
+import { App, getFrontMatterInfo, normalizePath, parseYaml, TFile, TFolder } from 'obsidian';
 import type { EntryKind, VaultPort } from './vaultPort';
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+	return typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+/** Parses the frontmatter block of a note's text; invalid YAML counts as none. */
+function parseFrontmatter(content: string): Record<string, unknown> | null {
+	const info = getFrontMatterInfo(content);
+	if (!info.exists) return null;
+	try {
+		return asRecord(parseYaml(info.frontmatter));
+	} catch {
+		return null;
+	}
+}
 
 /** Adapts Obsidian's Vault API to the minimal VaultPort used by PhraseStore. */
 export function createObsidianVaultPort(app: App): VaultPort {
@@ -34,11 +49,14 @@ export function createObsidianVaultPort(app: App): VaultPort {
 			if (dir === null) return [];
 			return dir.children.filter((child): child is TFile => child instanceof TFile).map((child) => child.name);
 		},
-		getFrontmatter(path) {
+		async getFrontmatter(path) {
 			const file = vault.getFileByPath(normalizePath(path));
 			if (file === null) return null;
-			const frontmatter: unknown = metadataCache.getFileCache(file)?.frontmatter;
-			return typeof frontmatter === 'object' && frontmatter !== null ? (frontmatter as Record<string, unknown>) : null;
+			// The metadata cache is fast but may not have indexed a file yet (just
+			// created, or right after startup); then read the file itself.
+			const cached = metadataCache.getFileCache(file);
+			if (cached !== null) return asRecord(cached.frontmatter);
+			return parseFrontmatter(await vault.cachedRead(file));
 		},
 	};
 }

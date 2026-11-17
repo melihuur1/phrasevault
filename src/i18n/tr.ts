@@ -4,6 +4,8 @@ import type { AnalyzeErrorCode } from '../ai/analyze';
 import type { AnalysisStatus } from '../ai/schema';
 import type { ClipboardProblem } from '../clipboard';
 import type { CostUnavailableReason } from '../core/cost';
+import type { RepairIssue } from '../core/indexRepair';
+import { formatNumber } from '../core/numbering';
 import type { ApiImageRejection, ImageProblem } from '../core/imageInput';
 import type { PhraseCategory } from '../core/types';
 import type { SaveFailureReason } from '../vault/vaultStore';
@@ -26,6 +28,7 @@ export const COMMANDS = {
 	importClipboard: 'Panodan ekran görüntüsü içe aktar',
 	importFile: 'Dosyadan ekran görüntüsü içe aktar',
 	prepareStructure: 'Klasör yapısını ve INDEX.md dosyasını hazırla',
+	repairIndex: 'İndeksi onar',
 	ribbon: 'PhraseVault: ekran görüntüsünden ifade ekle',
 } as const;
 
@@ -110,8 +113,9 @@ export const DONE = {
 	openNote: 'Notu aç',
 	openIndex: 'INDEX.md’yi aç',
 	retryRemaining: (count: number) => `Kalan ${count} ifadeyi düzenle ve tekrar dene`,
-	indexCreated: 'INDEX.md bulunamadığı için yeniden oluşturuldu. Önceki girdiler varsa INDEX.md’yi kontrol edin.',
-	notIndexed: (ids: string) => `Not oluşturuldu ancak INDEX.md’ye eklenemedi: ${ids}. Not güvende; INDEX.md’yi kontrol edin.`,
+	indexCreated: 'INDEX.md bulunamadığı için yeniden oluşturuldu. Önceki notları yeniden listelemek için “İndeksi onar” komutunu çalıştırın.',
+	notIndexed: (ids: string) => `Not oluşturuldu ancak INDEX.md’ye eklenemedi: ${ids}. Not güvende; “İndeksi onar” ile girdiyi ekleyebilirsiniz.`,
+	repairIndex: 'İndeksi onar',
 	notAttempted: (count: number) => `${count} ifade denenmedi.`,
 	notice: (count: number, range: string) => `PhraseVault: ${count} ifade kaydedildi (${range}).`,
 	failure: {
@@ -120,10 +124,53 @@ export const DONE = {
 		attachment_failed: 'Ekran görüntüsü Attachments klasörüne kaydedilemedi; hiçbir not oluşturulmadı.',
 		note_collision_limit: 'Uygun bir not numarası bulunamadı (dosyalar sürekli çakıştı). Hiçbir mevcut not değiştirilmedi.',
 		note_write_failed: 'Not dosyası oluşturulamadı.',
-		index_conflict: 'INDEX.md kaydetme sırasında değişti; girdi güvenlik için eklenmedi. Mevcut satırlar değiştirilmedi.',
+		index_conflict: 'INDEX.md kaydetme sırasında değişti; girdi güvenlik için eklenmedi. Mevcut satırlar değiştirilmedi; “İndeksi onar” ile girdiyi ekleyebilirsiniz.',
 		index_write_failed: 'INDEX.md güncellenemedi.',
 	} satisfies Record<SaveFailureReason, string>,
 } as const;
+
+export const REPAIR = {
+	title: 'İndeksi onar',
+	intro: 'Phrases klasöründeki numaralı notlar INDEX.md ile karşılaştırıldı. Mevcut satırlar ve notlar değiştirilmez; eksik girdiler yalnızca numara sırasına göre araya eklenir.',
+	indexMissing: 'INDEX.md bulunamadı; onarım sırasında yeniden oluşturulacak.',
+	additionsHeading: (count: number) => `Eklenecek girdiler (${count})`,
+	issuesHeading: (count: number) => `Elle kontrol edilmesi gerekenler (${count})`,
+	issuesHelp: 'Bunlar için hiçbir şey değiştirilmez; PhraseVault doğru olanı tahmin etmez.',
+	apply: (count: number) => `${count} girdiyi ekle`,
+	applying: 'Ekleniyor…',
+	close: 'Kapat',
+	upToDate: 'PhraseVault: İndeks güncel; eksik veya tutarsız girdi yok.',
+	nothingToIndex: 'PhraseVault: Listelenecek numaralı not yok.',
+	checkFailed: 'PhraseVault: İndeks kontrol edilemedi. INDEX.md adında bir klasör olabilir.',
+	added: (count: number) => `PhraseVault: İndekse ${count} girdi eklendi.`,
+	alreadyAdded: 'PhraseVault: Girdiler bu arada eklenmiş; değişiklik gerekmedi.',
+	applyFailed: 'PhraseVault: INDEX.md güncellenemedi. Hiçbir satır değiştirilmedi.',
+} as const;
+
+/** One line per repair issue, naming the file or INDEX.md line to check. */
+export function describeRepairIssue(issue: RepairIssue): string {
+	const id = formatNumber(issue.number);
+	switch (issue.kind) {
+		case 'no_phrase':
+			return `${issue.path}: özelliklerinde (frontmatter) “phrase” yok; girdinin adı belirlenemiyor.`;
+		case 'number_mismatch':
+			return `${issue.path}: özelliklerdeki numara (${issue.frontmatterNumber}) dosya adıyla uyuşmuyor.`;
+		case 'nonstandard_name':
+			return `${issue.path}: dosya adı standart değil; indeks bağlantısının çalışması için ${id}.md olmalı.`;
+		case 'duplicate_note':
+			return `${id} numarası birden fazla dosyada kullanılıyor: ${issue.paths.join(', ')}.`;
+		case 'empty_note':
+			return `${issue.path}: not boş.`;
+		case 'unreadable_note':
+			return `${issue.path}: not okunamadı.`;
+		case 'duplicate_entry':
+			return `INDEX.md: ${id} numarası birden fazla satırda var (satır ${issue.lines.join(', ')}).`;
+		case 'mismatched_entry':
+			return `INDEX.md satır ${issue.line}: ${id} numarası ${formatNumber(issue.linkNumber)} numaralı nota bağlantı veriyor.`;
+		case 'missing_note':
+			return `INDEX.md satır ${issue.line}: ${id} numaralı not bulunamadı (silinmiş veya taşınmış olabilir).`;
+	}
+}
 
 export const STRUCTURE = {
 	ready: 'PhraseVault: Phrases, Attachments ve INDEX.md hazır.',

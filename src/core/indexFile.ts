@@ -6,7 +6,7 @@
 // "0001 — " is not Markdown list syntax, so Reading view keeps the leading zeros.
 
 import { PHRASES_FOLDER } from '../constants';
-import { formatNumber, highestNumberInIndex, referencedNumbersInIndex } from './numbering';
+import { formatNumber, highestNumberInIndex, leadingNumber, linkedNumbers, referencedNumbersInIndex } from './numbering';
 
 export const INDEX_HEADING = '# PhraseVault İndeksi';
 
@@ -88,16 +88,17 @@ export interface RepairResult {
 	added: number[];
 }
 
-/** Number a line refers to: its link target, or its leading entry number. */
+/** The entry number of a line: its leading "0005 —", or else its first link. */
 function lineNumber(line: string): number | null {
-	const refs = [...referencedNumbersInIndex(line)];
-	return refs.length > 0 ? Math.min(...refs) : null;
+	return leadingNumber(line) ?? linkedNumbers(line)[0] ?? null;
 }
 
 /**
- * Adds entries for numbered notes the index does not refer to. Each line is
- * inserted before the first entry with a higher number, or appended. Existing
- * lines are never changed.
+ * Adds entries for numbered notes the index does not refer to. Called inside
+ * Vault.process, so `current` is the content at write time and numbers added
+ * meanwhile are skipped. Each line is inserted before the first entry with a
+ * higher number, or appended. Existing lines keep every byte, line endings
+ * included.
  */
 export function repairIndex(current: string, notes: ReadonlyArray<IndexEntry>): RepairResult {
 	const referenced = referencedNumbersInIndex(current);
@@ -108,12 +109,13 @@ export function repairIndex(current: string, notes: ReadonlyArray<IndexEntry>): 
 	if (missing.length === 0) return { text: current, added: [] };
 
 	const eol = detectEol(current);
-	const endsWithNewline = current.length === 0 || current.endsWith('\n');
-	const lines = current.length === 0 ? [] : current.split(/\r?\n/);
-	if (endsWithNewline && lines.length > 0) lines.pop(); // drop the empty piece after the final newline
+	// Each piece keeps its own line ending; only a missing final newline is added.
+	const lines = current.length === 0 ? [] : current.split(/(?<=\n)/);
+	const last = lines.length - 1;
+	if (last >= 0 && !(lines[last] ?? '').endsWith('\n')) lines[last] = `${lines[last] ?? ''}${eol}`;
 
 	for (const note of missing) {
-		const entry = formatIndexEntry(note.number, note.alias);
+		const entry = formatIndexEntry(note.number, note.alias) + eol;
 		const insertAt = lines.findIndex((line) => {
 			const n = lineNumber(line);
 			return n !== null && n > note.number;
@@ -122,5 +124,5 @@ export function repairIndex(current: string, notes: ReadonlyArray<IndexEntry>): 
 		else lines.splice(insertAt, 0, entry);
 	}
 
-	return { text: lines.join(eol) + eol, added: missing.map((note) => note.number) };
+	return { text: lines.join(''), added: missing.map((note) => note.number) };
 }

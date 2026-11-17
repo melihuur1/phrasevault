@@ -18,8 +18,11 @@ export interface VaultPort {
 	createFolder(path: string): Promise<void>;
 	/** Names of the files directly inside `folder` (empty if it does not exist). */
 	listFileNames(folder: string): string[];
-	/** Parsed frontmatter of a Markdown file, if available. */
-	getFrontmatter(path: string): Record<string, unknown> | null;
+	/**
+	 * Parsed frontmatter of a Markdown file, or null if it has none. Must also
+	 * work for files the metadata cache has not indexed yet.
+	 */
+	getFrontmatter(path: string): Promise<Record<string, unknown> | null>;
 }
 
 /** Persists the highest number ever issued (guards against reusing a deleted entry's number). */

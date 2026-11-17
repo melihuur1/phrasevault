@@ -130,6 +130,22 @@ describe('repairIndex', () => {
 		expect(kept.join('\n')).toBe(current);
 	});
 
+	it('keeps Windows line endings and every existing byte', () => {
+		const current = '# Index\r\n\r\n0001 — [[Phrases/0001|a]]\r\n0003 — [[Phrases/0003|c]]\r\n';
+		const result = repairIndex(current, [{ number: 2, alias: 'b' }]);
+		expect(result.text).toBe('# Index\r\n\r\n0001 — [[Phrases/0001|a]]\r\n0002 — [[Phrases/0002|b]]\r\n0003 — [[Phrases/0003|c]]\r\n');
+	});
+
+	it('does not normalize mixed line endings of lines it does not add', () => {
+		const current = '# Index\n0001 — [[Phrases/0001|a]]\r\n0003 — x\n';
+		const result = repairIndex(current, [{ number: 2, alias: 'b' }]);
+		expect(result.text).toBe('# Index\n0001 — [[Phrases/0001|a]]\r\n0002 — [[Phrases/0002|b]]\r\n0003 — x\n');
+	});
+
+	it('adds a missing final newline before appending', () => {
+		expect(repairIndex('# Index\n0001 — a', [{ number: 2, alias: 'b' }]).text).toBe('# Index\n0001 — a\n0002 — [[Phrases/0002|b]]\n');
+	});
+
 	it('rebuilds entries into a freshly recreated index', () => {
 		const result = repairIndex(createIndexContent(), [
 			{ number: 2, alias: 'put off' },

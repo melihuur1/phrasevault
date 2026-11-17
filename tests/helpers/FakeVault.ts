@@ -130,12 +130,16 @@ export class FakeVault implements VaultPort {
 			.map(([path]) => path.slice(prefix.length));
 	}
 
-	getFrontmatter(path: string): Record<string, unknown> | null {
+	getFrontmatter(path: string): Promise<Record<string, unknown> | null> {
 		const text = this.text(path);
 		const match = text === undefined ? null : /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
-		if (!match?.[1]) return null;
-		const parsed: unknown = parseYaml(match[1]);
-		return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : null;
+		if (!match?.[1]) return Promise.resolve(null);
+		try {
+			const parsed: unknown = parseYaml(match[1]);
+			return Promise.resolve(typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : null);
+		} catch {
+			return Promise.resolve(null);
+		}
 	}
 }
 
