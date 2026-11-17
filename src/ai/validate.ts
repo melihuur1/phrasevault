@@ -1,13 +1,19 @@
 // Validates and cleans the model's JSON. Pure and fully testable with fixtures.
 
 import { normalizePhrase } from '../core/duplicates';
-import { isPhraseCategory, type PhraseDraft } from '../core/types';
+import { isPhraseCategory, LEARNING_DETAIL_FIELDS, type LearningDetails, type PhraseDraft } from '../core/types';
 import { ANALYSIS_STATUSES, MAX_SUGGESTIONS, type AnalysisStatus, type RawAnalysis, type RawSuggestion } from './schema';
 
-export interface Suggestion extends PhraseDraft {
+export interface Suggestion extends PhraseDraft, LearningDetails {
 	highlighted: boolean;
 	/** The original wording could not be found in the quoted source sentence. */
 	sourceMismatch: boolean;
+	/**
+	 * The longer suggestion from the same sentence that this one is only a part
+	 * of ("pick up" inside "pick up the slack"), or null. Such cards start
+	 * unselected; the user decides.
+	 */
+	partOf: string | null;
 }
 
 export interface AnalysisResult {
@@ -55,9 +61,52 @@ function checkSuggestion(value: unknown, path: string): RawSuggestion {
 	for (const field of STRING_FIELDS) {
 		if (typeof value[field] !== 'string') throw new InvalidAnalysisError(`${path}.${field}: expected a string`);
 	}
+	// The schema requires the learning details too; an answer without them is
+	// still usable, so a missing detail is treated as empty.
+	for (const field of LEARNING_DETAIL_FIELDS) {
+		if (value[field] !== undefined && typeof value[field] !== 'string') throw new InvalidAnalysisError(`${path}.${field}: expected a string`);
+	}
 	if (!isPhraseCategory(value['category'])) throw new InvalidAnalysisError(`${path}.category: invalid value`);
 	if (typeof value['highlighted'] !== 'boolean') throw new InvalidAnalysisError(`${path}.highlighted: expected a boolean`);
 	return value as unknown as RawSuggestion;
+}
+
+/** Placeholders a model may write instead of leaving a detail empty. */
+const PLACEHOLDER = /^(?:[-–—]+|n\/?a|none|null|yok|bulunmuyor|gerek yok|belirsizlik yok|bağlam açık)\.?$/i;
+
+function cleanDetail(text: string | undefined): string {
+	const cleaned = clean(text ?? '');
+	return PLACEHOLDER.test(cleaned) ? '' : cleaned;
+}
+
+/** Sentence identity for comparisons: case, quotes, spacing and final punctuation do not matter. */
+function sameSentence(a: string, b: string): boolean {
+	const key = (text: string) => forMatching(text).replace(/[.!?…]+$/, '').trim();
+	return key(a) !== '' && key(a) === key(b);
+}
+
+function containsWords(longer: string, shorter: string): boolean {
+	return longer !== shorter && ` ${longer} `.includes(` ${shorter} `);
+}
+
+/**
+ * Marks suggestions that are only a part of a longer suggestion from the same
+ * sentence: both the phrase and the wording sit inside the longer one ("pick up"
+ * in "pick up the slack"). Overlapping but separate expressions ("be meant to"
+ * and "make it") are not affected, and highlighted ones are never marked.
+ */
+function markFragments(suggestions: Suggestion[]): void {
+	for (const item of suggestions) {
+		if (item.highlighted || item.originalText === '') continue;
+		const container = suggestions.find(
+			(other) =>
+				other !== item &&
+				sameSentence(other.sourceSentence, item.sourceSentence) &&
+				containsWords(normalizePhrase(other.phrase), normalizePhrase(item.phrase)) &&
+				containsWords(forMatching(other.originalText), forMatching(item.originalText)),
+		);
+		item.partOf = container?.phrase ?? null;
+	}
 }
 
 /** Structural check matching ANALYSIS_JSON_SCHEMA (extra suggestions are trimmed later, not rejected). */
@@ -98,19 +147,38 @@ export function parseAnalysisText(text: string): AnalysisResult {
 
 		const originalText = clean(item.originalText);
 		const sourceSentence = clean(item.sourceSentence);
+		const exampleSentence = cleanDetail(item.exampleSentence);
 		suggestions.push({
 			phrase,
 			originalText,
 			category: item.category,
 			turkishMeaning,
 			explanation: clean(item.explanation),
+			usage: cleanDetail(item.usage),
+			contextNote: cleanDetail(item.contextNote),
 			sourceSentence,
+			// Text that is not visible cannot be translated.
+			sourceTranslation: sourceSentence === '' ? '' : cleanDetail(item.sourceTranslation),
+			exampleSentence,
+			exampleTranslation: exampleSentence === '' ? '' : cleanDetail(item.exampleTranslation),
 			highlighted: item.highlighted,
 			sourceMismatch: isSourceMismatch(originalText, sourceSentence),
+			partOf: null,
 		});
 	}
 
-	// Highlighted expressions first; otherwise keep the model's order. Then cap.
-	const ordered = [...suggestions.filter((s) => s.highlighted), ...suggestions.filter((s) => !s.highlighted)];
-	return { status: parsed.status, suggestions: ordered.slice(0, MAX_SUGGESTIONS) };
+	// A generated example must never be text from the screenshot itself.
+	const screenshotSentences = suggestions.map((s) => s.sourceSentence).filter((sentence) => sentence !== '');
+	for (const item of suggestions) {
+		if (screenshotSentences.some((sentence) => sameSentence(sentence, item.exampleSentence))) {
+			item.exampleSentence = '';
+			item.exampleTranslation = '';
+		}
+	}
+
+	// Highlighted expressions first; otherwise keep the model's order. Then cap,
+	// and mark fragments among what is shown.
+	const ordered = [...suggestions.filter((s) => s.highlighted), ...suggestions.filter((s) => !s.highlighted)].slice(0, MAX_SUGGESTIONS);
+	markFragments(ordered);
+	return { status: parsed.status, suggestions: ordered };
 }

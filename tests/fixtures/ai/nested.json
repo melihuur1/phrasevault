@@ -1,0 +1,61 @@
+{
+	"status": "unmarked",
+	"suggestions": [
+		{
+			"phrase": "look forward to",
+			"originalText": "looking forward to",
+			"category": "phrasal_verb",
+			"turkishMeaning": "dört gözle beklemek",
+			"explanation": "Karşı tarafın haber vermesini sabırsızlıkla beklediğini anlatıyor.",
+			"usage": "look forward to + isim ya da -ing: 'to' burada edattır, bu yüzden 'to hear' değil 'to hearing' denir.",
+			"contextNote": "",
+			"sourceSentence": "I'm really looking forward to hearing from you.",
+			"sourceTranslation": "Senden haber almayı dört gözle bekliyorum.",
+			"exampleSentence": "We're looking forward to meeting your parents.",
+			"exampleTranslation": "Ailenle tanışmayı dört gözle bekliyoruz.",
+			"highlighted": false
+		},
+		{
+			"phrase": "hear from",
+			"originalText": "hearing from",
+			"category": "phrasal_verb",
+			"turkishMeaning": "-den haber almak",
+			"explanation": "Kişinin kendisinden mesaj, telefon ya da e-posta gelmesini kastediyor.",
+			"usage": "hear from + kişi. 'hear about' bir konu hakkında bilgi almaktır; 'hear from' kişinin kendisinden haber almaktır.",
+			"contextNote": "",
+			"sourceSentence": "I'm really looking forward to hearing from you.",
+			"sourceTranslation": "Senden haber almayı dört gözle bekliyorum.",
+			"exampleSentence": "",
+			"exampleTranslation": "",
+			"highlighted": false
+		},
+		{
+			"phrase": "pick up the slack",
+			"originalText": "pick up the slack",
+			"category": "idiom",
+			"turkishMeaning": "açığı kapatmak",
+			"explanation": "Biri yokken onun yapamadığı işleri başkasının üstlenmesi gerektiğini söylüyor.",
+			"usage": "Genellikle 'have to' ya da 'need to' ile, iş ve ekip bağlamında kullanılır.",
+			"contextNote": "",
+			"sourceSentence": "Someone has to pick up the slack when she's away.",
+			"sourceTranslation": "O yokken birinin açığı kapatması gerekiyor.",
+			"exampleSentence": "When Tom got sick, the rest of the team picked up the slack.",
+			"exampleTranslation": "Tom hastalanınca ekibin geri kalanı onun işlerini üstlendi.",
+			"highlighted": false
+		},
+		{
+			"phrase": "pick up",
+			"originalText": "pick up",
+			"category": "phrasal_verb",
+			"turkishMeaning": "almak",
+			"explanation": "",
+			"usage": "",
+			"contextNote": "",
+			"sourceSentence": "Someone has to pick up the slack when she's away.",
+			"sourceTranslation": "O yokken birinin açığı kapatması gerekiyor.",
+			"exampleSentence": "",
+			"exampleTranslation": "",
+			"highlighted": false
+		}
+	]
+}

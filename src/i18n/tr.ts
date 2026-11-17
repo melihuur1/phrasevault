@@ -15,6 +15,7 @@ export const CATEGORY_LABELS: Record<PhraseCategory, string> = {
 	idiom: 'Deyim',
 	collocation: 'Eşdizim (collocation)',
 	expression: 'Kalıp ifade',
+	grammar_pattern: 'Dilbilgisi kalıbı',
 };
 
 export const NOTE_LABELS = {

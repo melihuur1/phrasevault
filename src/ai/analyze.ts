@@ -23,8 +23,12 @@ import { InvalidAnalysisError, parseAnalysisText, type AnalysisResult } from './
 export const DEFAULT_MODEL = 'claude-haiku-5-5';
 /** The only host PhraseVault ever sends anything to. */
 export const ANTHROPIC_API_URL = 'https://api.anthropic.com';
-const MAX_TOKENS = 8000;
-const REQUEST_TIMEOUT_MS = 60_000;
+/** Room for up to 8 detailed suggestions plus thinking; still well within non-streaming limits. */
+const MAX_TOKENS = 12_000;
+/** Generous, so a slow answer is not cut off and retried (a retried request can be billed twice). */
+const REQUEST_TIMEOUT_MS = 120_000;
+/** Medium effort for a more thorough scan of every sentence. */
+const EFFORT = 'medium';
 
 export type ApiImageMediaType = 'image/png' | 'image/jpeg';
 
@@ -136,7 +140,7 @@ export function buildAnalysisRequest(model: string, image: ApiImage): MessageCre
 				],
 			},
 		],
-		output_config: { effort: 'low', format: ANALYSIS_OUTPUT_FORMAT },
+		output_config: { effort: EFFORT, format: ANALYSIS_OUTPUT_FORMAT },
 	};
 }
 

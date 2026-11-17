@@ -72,9 +72,10 @@ describe('buildAnalysisRequest', () => {
 		expect(blocks[0]).toEqual({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: IMAGE.base64 } });
 	});
 
-	it('uses structured JSON output, low effort, and no sampling parameters', () => {
+	it('uses structured JSON output, medium effort, enough output room, and no sampling parameters', () => {
 		expect(request.model).toBe('claude-haiku-5-5');
-		expect(request.output_config?.effort).toBe('low');
+		expect(request.output_config?.effort).toBe('medium');
+		expect(request.max_tokens).toBe(12_000);
 		expect(request.output_config?.format?.type).toBe('json_schema');
 		expect(request.output_config?.format?.schema).toMatchObject({ type: 'object', additionalProperties: false });
 		expect(request).not.toHaveProperty('temperature');

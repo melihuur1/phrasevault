@@ -1,4 +1,4 @@
-export const PHRASE_CATEGORIES = ['phrasal_verb', 'idiom', 'collocation', 'expression'] as const;
+export const PHRASE_CATEGORIES = ['phrasal_verb', 'idiom', 'collocation', 'expression', 'grammar_pattern'] as const;
 export type PhraseCategory = (typeof PHRASE_CATEGORIES)[number];
 
 export function isPhraseCategory(value: unknown): value is PhraseCategory {
@@ -17,6 +17,26 @@ export interface PhraseDraft {
 	/** Verbatim sentence from the screenshot; empty when unreadable. */
 	sourceSentence: string;
 }
+
+/**
+ * The educational details of a phrase: shown under "Ayrıntılar" on the review
+ * card and saved in the note body. An empty string means "not applicable".
+ */
+export interface LearningDetails {
+	/** How the expression works: pattern, what follows it, register (Turkish). */
+	usage: string;
+	/** Empty when the meaning is clear; otherwise why the context is ambiguous (Turkish). */
+	contextNote: string;
+	/** Natural Turkish translation of the source sentence. */
+	sourceTranslation: string;
+	/** A generated English example (never text from the screenshot). */
+	exampleSentence: string;
+	exampleTranslation: string;
+}
+
+export const LEARNING_DETAIL_FIELDS = ['usage', 'contextNote', 'sourceTranslation', 'exampleSentence', 'exampleTranslation'] as const satisfies ReadonlyArray<
+	keyof LearningDetails
+>;
 
 /** A known phrase already stored in the vault (from a note's frontmatter or an index entry). */
 export interface KnownPhrase {

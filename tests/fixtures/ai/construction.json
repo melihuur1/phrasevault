@@ -1,0 +1,33 @@
+{
+	"status": "unmarked",
+	"suggestions": [
+		{
+			"phrase": "be meant to",
+			"originalText": "were meant to",
+			"category": "grammar_pattern",
+			"turkishMeaning": "-mesi beklenmek",
+			"explanation": "Hiçbirinin başarmasının beklenmediğini anlatıyor; 'but they did' bu beklentinin boşa çıktığını gösteriyor.",
+			"usage": "be meant to + yalın fiil. Plan, kader ya da beklenti gereği olması gerekeni anlatır; geçmişte (was/were meant to) çoğu zaman gerçekleşmeyen bir beklentidir.",
+			"contextNote": "",
+			"sourceSentence": "None of them were meant to make it, but they did.",
+			"sourceTranslation": "Hiçbirinin başarması beklenmiyordu ama başardılar.",
+			"exampleSentence": "This room was meant to be a library.",
+			"exampleTranslation": "Bu odanın kütüphane olması planlanmıştı.",
+			"highlighted": false
+		},
+		{
+			"phrase": "make it",
+			"originalText": "make it",
+			"category": "expression",
+			"turkishMeaning": "başarmak",
+			"explanation": "Zor bir durumu atlatıp hedefe ulaşmayı anlatıyor; beklenmedik bir başarı söz konusu.",
+			"usage": "Nesnesiz kullanılır ve 'it' bir şeyi göstermez. make it (to a place) bir yere yetişmek anlamına da gelir.",
+			"contextNote": "Önceki cümleler görünmüyor; 'make it' burada 'başarmak' ya da 'hayatta kalmak' anlamında olabilir.",
+			"sourceSentence": "None of them were meant to make it, but they did.",
+			"sourceTranslation": "Hiçbirinin başarması beklenmiyordu ama başardılar.",
+			"exampleSentence": "She moved to New York to become an actress, and she really made it.",
+			"exampleTranslation": "Oyuncu olmak için New York'a taşındı ve gerçekten başardı.",
+			"highlighted": false
+		}
+	]
+}

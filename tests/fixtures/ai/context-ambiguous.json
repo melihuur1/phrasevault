@@ -1,0 +1,19 @@
+{
+	"status": "unmarked",
+	"suggestions": [
+		{
+			"phrase": "make it",
+			"originalText": "make it",
+			"category": "expression",
+			"turkishMeaning": "yetişmek",
+			"explanation": "Kişinin bir yere, bir olaya ya da bir hedefe ulaşıp ulaşamadığından söz ediliyor.",
+			"usage": "Nesnesiz kullanılır; anlamı 'yetişmek', 'başarmak' ve 'hayatta kalmak' arasında bağlama göre değişir.",
+			"contextNote": "Görüntüde tek bir cümle var; 'make it' burada 'yetişmek', 'başarmak' ya da 'hayatta kalmak' olabilir.",
+			"sourceSentence": "He didn't make it.",
+			"sourceTranslation": "Yetişemedi.",
+			"exampleSentence": "",
+			"exampleTranslation": "",
+			"highlighted": false
+		}
+	]
+}
