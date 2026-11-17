@@ -12,7 +12,8 @@ Requirements: Node.js 20+ and Obsidian 1.11.4+ (desktop).
 
 ```bash
 npm install
-npm run dev     # watch build; copies the plugin into ./dev-vault
+npm run dev       # watch build; copies the plugin into ./dev-vault
+npm run build:dev # one development build into ./dev-vault (adds a sample-response test button)
 npm test        # unit tests (network access is blocked, no API key needed)
 npm run lint
 npm run build   # type-check + production bundle

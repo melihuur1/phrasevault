@@ -4,6 +4,7 @@
 import type { AnalysisResult } from '../ai/validate';
 import { isSourceMismatch } from '../ai/validate';
 import { findBatchDuplicates, findDuplicates } from '../core/duplicates';
+import { formatNumber } from '../core/numbering';
 import type { KnownPhrase, PhraseDraft } from '../core/types';
 
 export interface CardState extends PhraseDraft {
@@ -110,4 +111,29 @@ export function planSave(cards: ReadonlyArray<CardState>, known: ReadonlyArray<K
 	const blockedIds = cards.filter((_, i) => issues[i]?.blocking === true).map((card) => card.id);
 	if (blockedIds.length > 0) return { ok: false, reason: 'blocked', blockedIds };
 	return { ok: true, drafts: selected.map(toDraft), cardIds: selected.map((card) => card.id) };
+}
+
+/**
+ * After a save, drops the cards whose note was created (the first `createdCount`
+ * saved cards, in order) and keeps the rest — failed, not attempted, or not
+ * selected — so the user can fix and retry without creating duplicates.
+ */
+export function remainingCardsAfterSave(
+	cards: ReadonlyArray<CardState>,
+	savedCardIds: ReadonlyArray<number>,
+	createdCount: number,
+): CardState[] {
+	const done = new Set(savedCardIds.slice(0, createdCount));
+	return cards.filter((card) => !done.has(card.id)).map((card) => ({ ...card, overrideDuplicate: false }));
+}
+
+/** "0004" for one number, "0004–0006" for a consecutive run, otherwise a list. */
+export function describeNumberRange(numbers: ReadonlyArray<number>): string {
+	const sorted = [...numbers].sort((a, b) => a - b);
+	const first = sorted[0];
+	const last = sorted[sorted.length - 1];
+	if (first === undefined || last === undefined) return '';
+	if (first === last) return formatNumber(first);
+	const consecutive = sorted.every((n, i) => n === first + i);
+	return consecutive ? `${formatNumber(first)}–${formatNumber(last)}` : sorted.map(formatNumber).join(', ');
 }

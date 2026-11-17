@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseAnalysisText } from '../../src/ai/validate';
 import type { KnownPhrase } from '../../src/core/types';
-import { blankCard, cardsFromAnalysis, evaluateCards, planSave, type CardState } from '../../src/ui/reviewModel';
+import { blankCard, cardsFromAnalysis, describeNumberRange, evaluateCards, planSave, remainingCardsAfterSave, type CardState } from '../../src/ui/reviewModel';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -99,5 +99,26 @@ describe('planSave', () => {
 		expect(planSave([manual], [])).toEqual({ ok: false, reason: 'blocked', blockedIds: [9] });
 		const plan = planSave([{ ...manual, phrase: 'take over', turkishMeaning: 'devralmak' }], []);
 		expect(plan).toMatchObject({ ok: true, cardIds: [9] });
+	});
+});
+
+describe('remainingCardsAfterSave', () => {
+	it('keeps failed, not attempted and deselected cards, and resets duplicate confirmations', () => {
+		const list: CardState[] = [1, 2, 3, 4].map((id) => ({ ...blankCard(id), phrase: `p${id}`, turkishMeaning: 'x', overrideDuplicate: true }));
+		list[3]!.selected = false;
+		// Cards 1, 2, 3 were saved in order; only the first note was created before a failure.
+		const remaining = remainingCardsAfterSave(list, [1, 2, 3], 1);
+		expect(remaining.map((c) => c.id)).toEqual([2, 3, 4]);
+		expect(remaining.every((c) => !c.overrideDuplicate)).toBe(true);
+	});
+});
+
+describe('describeNumberRange', () => {
+	it('formats single numbers, consecutive runs and gaps', () => {
+		expect(describeNumberRange([])).toBe('');
+		expect(describeNumberRange([4])).toBe('0004');
+		expect(describeNumberRange([6, 4, 5])).toBe('0004–0006');
+		expect(describeNumberRange([4, 7])).toBe('0004, 0007');
+		expect(describeNumberRange([9999, 10000])).toBe('9999–10000');
 	});
 });

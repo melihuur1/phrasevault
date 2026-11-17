@@ -20,14 +20,23 @@ import {
 	UI,
 } from '../i18n/tr';
 import { prepareApiImage } from '../imagePrep';
+import { INDEX_PATH } from '../constants';
 import type PhraseVaultPlugin from '../main';
 import type { SaveReport } from '../vault/vaultStore';
-import { blankCard, cardsFromAnalysis, evaluateCards, planSave, type CardState } from './reviewModel';
+import {
+	blankCard,
+	cardsFromAnalysis,
+	describeNumberRange,
+	evaluateCards,
+	planSave,
+	remainingCardsAfterSave,
+	type CardState,
+} from './reviewModel';
 import { SuggestionCard } from './SuggestionCard';
 
 export type ImportSource = 'clipboard' | 'file' | 'none';
 
-type Phase = 'empty' | 'preview' | 'analyzing' | 'review' | 'saving';
+type Phase = 'empty' | 'preview' | 'analyzing' | 'review' | 'saving' | 'done';
 
 interface StatusMessage {
 	kind: 'error' | 'info';
@@ -56,6 +65,8 @@ export class ImportModal extends Modal {
 	private saveButton: ButtonComponent | null = null;
 	private reviewMessageEl: HTMLElement | null = null;
 	private nextCardId = 1;
+	private report: SaveReport | null = null;
+	private checkingBeforeSave = false;
 
 	constructor(
 		app: App,
@@ -270,6 +281,7 @@ export class ImportModal extends Modal {
 	// ── Review ───────────────────────────────────────────────────────────────
 
 	private clearReview(): void {
+		this.report = null;
 		this.cards = [];
 		this.cardViews.clear();
 		this.known = [];
@@ -340,8 +352,18 @@ export class ImportModal extends Modal {
 	}
 
 	private async save(): Promise<void> {
-		if (this.isBusy) return;
+		if (this.isBusy || this.checkingBeforeSave) return;
 		this.attemptedSave = true;
+		// Re-read existing phrases now, so a duplicate can never slip through before they finished loading.
+		this.checkingBeforeSave = true;
+		try {
+			this.known = await this.plugin.store.knownPhrases();
+		} catch {
+			// Keep the last known list; saving still never overwrites anything.
+		} finally {
+			this.checkingBeforeSave = false;
+		}
+		if (this.closed || this.phase !== 'review') return;
 		const plan = planSave(this.cards, this.known);
 		if (!plan.ok) {
 			this.refreshReview();
@@ -371,20 +393,29 @@ export class ImportModal extends Modal {
 			this.setReviewMessage({ kind: 'error', text: DONE.failure.note_write_failed });
 			return;
 		}
+		const created = [...report.saved, ...report.notIndexed].map((entry) => entry.number);
+		if (created.length > 0) new Notice(DONE.notice(created.length, describeNumberRange(created)));
 		if (this.closed) return;
 
-		const savedCount = report.saved.length + report.notIndexed.length;
-		if (savedCount > 0) new Notice(DONE.savedHeading(savedCount));
-		if (report.failure === null) {
-			this.resetToEmpty();
-			return;
-		}
-		// Keep the unsaved cards so the user can fix and retry; saved ones are removed.
-		const savedIds = new Set(plan.cardIds.slice(0, savedCount));
-		this.cards = this.cards.filter((card) => !savedIds.has(card.id));
-		this.phase = 'review';
+		// Cards whose note was created are done; the rest stay available for a retry.
+		this.cards = remainingCardsAfterSave(this.cards, plan.cardIds, created.length);
+		this.report = report;
+		this.phase = 'done';
 		this.render();
-		this.setReviewMessage({ kind: 'error', text: DONE.failure[report.failure.reason] });
+	}
+
+	private retryRemaining(): void {
+		this.report = null;
+		this.attemptedSave = false;
+		this.phase = 'review';
+		this.message = null;
+		this.render();
+		void this.loadKnownPhrases();
+	}
+
+	private async openPath(path: string): Promise<void> {
+		this.close();
+		await this.app.workspace.openLinkText(path, '', false);
 	}
 
 	// ── Rendering ────────────────────────────────────────────────────────────
@@ -414,7 +445,53 @@ export class ImportModal extends Modal {
 			case 'saving':
 				this.renderReview(root);
 				break;
+			case 'done':
+				this.renderDone(root);
+				break;
 		}
+	}
+
+	private renderDone(root: HTMLElement): void {
+		const report = this.report;
+		if (report === null) return;
+		const createdCount = report.saved.length + report.notIndexed.length;
+
+		root.createEl('h3', { text: createdCount > 0 ? DONE.savedHeading(createdCount) : DONE.nothingSaved });
+
+		if (createdCount > 0) {
+			const list = root.createEl('ul', { cls: 'phrasevault-saved-list' });
+			for (const entry of [...report.saved, ...report.notIndexed]) {
+				const item = list.createEl('li');
+				const link = item.createEl('a', { text: `${formatNumber(entry.number)} — ${entry.phrase}`, href: '#' });
+				link.addEventListener('click', (event) => {
+					event.preventDefault();
+					void this.openPath(entry.path);
+				});
+			}
+		}
+
+		if (report.indexCreated) root.createDiv({ cls: 'phrasevault-message phrasevault-message-info', text: DONE.indexCreated });
+		if (report.notIndexed.length > 0) {
+			const ids = report.notIndexed.map((entry) => formatNumber(entry.number)).join(', ');
+			root.createDiv({ cls: 'phrasevault-message phrasevault-message-error', text: DONE.notIndexed(ids) });
+		}
+		if (report.failure !== null) {
+			const box = root.createDiv({ cls: 'phrasevault-message phrasevault-message-error', attr: { role: 'alert' } });
+			box.createDiv({ text: DONE.failure[report.failure.reason] });
+			if (report.notAttempted > 0) box.createDiv({ text: DONE.notAttempted(report.notAttempted) });
+			if (report.failure.detail !== '') box.createDiv({ cls: 'phrasevault-detail', text: report.failure.detail });
+		}
+
+		const actions = root.createDiv({ cls: 'phrasevault-actions' });
+		if (this.cards.length > 0) {
+			new ButtonComponent(actions).setButtonText(DONE.retryRemaining(this.cards.length)).onClick(() => this.retryRemaining());
+		}
+		new ButtonComponent(actions).setButtonText(DONE.openIndex).onClick(() => void this.openPath(INDEX_PATH));
+		new ButtonComponent(actions).setButtonText(UI.newImage).onClick(() => this.resetToEmpty());
+		new ButtonComponent(actions)
+			.setButtonText(UI.close)
+			.setCta()
+			.onClick(() => this.close());
 	}
 
 	private renderMessage(root: HTMLElement): void {

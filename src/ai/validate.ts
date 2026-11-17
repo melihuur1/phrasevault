@@ -1,8 +1,8 @@
 // Validates and cleans the model's JSON. Pure and fully testable with fixtures.
 
 import { normalizePhrase } from '../core/duplicates';
-import type { PhraseDraft } from '../core/types';
-import { AnalysisResponseSchema, MAX_SUGGESTIONS, type AnalysisStatus } from './schema';
+import { isPhraseCategory, type PhraseDraft } from '../core/types';
+import { ANALYSIS_STATUSES, MAX_SUGGESTIONS, type AnalysisStatus, type RawAnalysis, type RawSuggestion } from './schema';
 
 export interface Suggestion extends PhraseDraft {
 	highlighted: boolean;
@@ -42,6 +42,37 @@ export function isSourceMismatch(original: string, sentence: string): boolean {
 
 const clean = (text: string): string => text.replace(/\s+/g, ' ').trim();
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+const STRING_FIELDS = ['phrase', 'originalText', 'turkishMeaning', 'explanation', 'sourceSentence'] as const;
+
+function checkSuggestion(value: unknown, path: string): RawSuggestion {
+	if (!isRecord(value)) throw new InvalidAnalysisError(`${path}: expected an object`);
+	for (const field of STRING_FIELDS) {
+		if (typeof value[field] !== 'string') throw new InvalidAnalysisError(`${path}.${field}: expected a string`);
+	}
+	if (!isPhraseCategory(value['category'])) throw new InvalidAnalysisError(`${path}.category: invalid value`);
+	if (typeof value['highlighted'] !== 'boolean') throw new InvalidAnalysisError(`${path}.highlighted: expected a boolean`);
+	return value as unknown as RawSuggestion;
+}
+
+/** Structural check matching ANALYSIS_JSON_SCHEMA (extra suggestions are trimmed later, not rejected). */
+function checkAnalysis(value: unknown): RawAnalysis {
+	if (!isRecord(value)) throw new InvalidAnalysisError('Response does not match the schema (expected an object)');
+	const status = value['status'];
+	if (typeof status !== 'string' || !(ANALYSIS_STATUSES as readonly string[]).includes(status)) {
+		throw new InvalidAnalysisError('Response does not match the schema (status: invalid value)');
+	}
+	const suggestions = value['suggestions'];
+	if (!Array.isArray(suggestions)) throw new InvalidAnalysisError('Response does not match the schema (suggestions: expected an array)');
+	return {
+		status: status as AnalysisStatus,
+		suggestions: suggestions.map((item, i) => checkSuggestion(item, `suggestions.${i}`)),
+	};
+}
+
 /** Parses the model's text output. Throws InvalidAnalysisError for anything malformed. */
 export function parseAnalysisText(text: string): AnalysisResult {
 	let json: unknown;
@@ -51,15 +82,11 @@ export function parseAnalysisText(text: string): AnalysisResult {
 		throw new InvalidAnalysisError('Response is not valid JSON');
 	}
 
-	const parsed = AnalysisResponseSchema.safeParse(json);
-	if (!parsed.success) {
-		const issue = parsed.error.issues[0];
-		throw new InvalidAnalysisError(`Response does not match the schema${issue ? ` (${issue.path.join('.')}: ${issue.message})` : ''}`);
-	}
+	const parsed = checkAnalysis(json);
 
 	const seen = new Set<string>();
 	const suggestions: Suggestion[] = [];
-	for (const item of parsed.data.suggestions) {
+	for (const item of parsed.suggestions) {
 		const phrase = clean(item.phrase);
 		const turkishMeaning = clean(item.turkishMeaning);
 		if (phrase === '' || turkishMeaning === '') continue;
@@ -83,5 +110,5 @@ export function parseAnalysisText(text: string): AnalysisResult {
 
 	// Highlighted expressions first; otherwise keep the model's order. Then cap.
 	const ordered = [...suggestions.filter((s) => s.highlighted), ...suggestions.filter((s) => !s.highlighted)];
-	return { status: parsed.data.status, suggestions: ordered.slice(0, MAX_SUGGESTIONS) };
+	return { status: parsed.status, suggestions: ordered.slice(0, MAX_SUGGESTIONS) };
 }
