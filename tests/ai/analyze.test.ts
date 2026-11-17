@@ -4,6 +4,7 @@ import { APIConnectionError, APIConnectionTimeoutError, APIError, APIUserAbortEr
 import type { Message, MessageCreateParamsNonStreaming } from '@anthropic-ai/sdk/resources/messages/messages';
 import { describe, expect, it, vi } from 'vitest';
 import {
+	ANTHROPIC_API_URL,
 	AnalyzeError,
 	analyzeScreenshot,
 	buildAnalysisRequest,
@@ -205,6 +206,35 @@ describe('secret handling', () => {
 		const mapped = toAnalyzeError(apiError(401, 'authentication_error', `invalid x-api-key ${FAKE_KEY}`));
 		expect(mapped.code).toBe('invalid_key');
 		expect(`${mapped.message} ${mapped.stack ?? ''}`).not.toContain(FAKE_KEY);
+	});
+
+	it('always sends to api.anthropic.com with only the given key, whatever the environment says', async () => {
+		const env = { ANTHROPIC_BASE_URL: 'https://attacker.example', ANTHROPIC_AUTH_TOKEN: 'other-token', ANTHROPIC_LOG: 'debug' };
+		const saved = Object.fromEntries(Object.keys(env).map((name) => [name, process.env[name]]));
+		const originalFetch = globalThis.fetch;
+		const seen: Array<{ url: string; headers: Headers }> = [];
+		Object.assign(process.env, env);
+		globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+			seen.push({ url: input instanceof Request ? input.url : String(input), headers: new Headers(init?.headers) });
+			return originalFetch(input, init);
+		};
+		try {
+			const error = await analyzeScreenshot(createAnthropicSender(FAKE_KEY), IMAGE, { model: DEFAULT_MODEL }).catch((e: unknown) => e);
+			expect((error as AnalyzeError).code).toBe('network');
+		} finally {
+			globalThis.fetch = originalFetch;
+			for (const [name, value] of Object.entries(saved)) {
+				if (value === undefined) Reflect.deleteProperty(process.env, name);
+				else process.env[name] = value;
+			}
+		}
+		expect(seen.length).toBeGreaterThan(0);
+		for (const request of seen) {
+			expect(request.url.startsWith(`${ANTHROPIC_API_URL}/v1/messages`)).toBe(true);
+			// SDK 1.x sends the key as a bearer token; the ANTHROPIC_AUTH_TOKEN from the environment is never used.
+			expect(request.headers.get('authorization')).toBe(`Bearer ${FAKE_KEY}`);
+			expect([...request.headers.values()].join(' ')).not.toContain('other-token');
+		}
 	});
 
 	it('the real client cannot reach the network in tests', async () => {

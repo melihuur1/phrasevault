@@ -21,6 +21,8 @@ import { ANALYSIS_OUTPUT_FORMAT } from './schema';
 import { InvalidAnalysisError, parseAnalysisText, type AnalysisResult } from './validate';
 
 export const DEFAULT_MODEL = 'claude-haiku-5-5';
+/** The only host PhraseVault ever sends anything to. */
+export const ANTHROPIC_API_URL = 'https://api.anthropic.com';
 const MAX_TOKENS = 8000;
 const REQUEST_TIMEOUT_MS = 60_000;
 
@@ -36,9 +38,18 @@ export interface ApiImage {
 export type SendMessage = (params: MessageCreateParamsNonStreaming, signal?: AbortSignal) => Promise<Message>;
 
 export function createAnthropicSender(apiKey: string): SendMessage {
-	// dangerouslyAllowBrowser: Obsidian is a browser-like runtime. The key is the
-	// user's own, entered on their own machine (bring-your-own-key).
-	const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: 2, timeout: REQUEST_TIMEOUT_MS });
+	const client = new Anthropic({
+		apiKey,
+		// Fixed endpoint and no SDK logging, so environment variables such as
+		// ANTHROPIC_BASE_URL or ANTHROPIC_LOG can never redirect or log requests.
+		baseURL: ANTHROPIC_API_URL,
+		logLevel: 'off',
+		// Obsidian is a browser-like runtime. The key is the user's own, entered
+		// on their own machine (bring-your-own-key).
+		dangerouslyAllowBrowser: true,
+		maxRetries: 2,
+		timeout: REQUEST_TIMEOUT_MS,
+	});
 	return (params, signal) => client.messages.create(params, { signal });
 }
 
