@@ -49,6 +49,7 @@ export const UI = {
 	busy: 'PhraseVault şu anda meşgul; işlem bitince tekrar deneyin.',
 	finishReviewFirst: 'Yeni görüntü için önce mevcut önerileri kaydedin veya “Yeni görüntü”yü seçin.',
 	newImage: 'Yeni görüntü',
+	backToPreview: 'Önizlemeye dön',
 	close: 'Kapat',
 } as const;
 

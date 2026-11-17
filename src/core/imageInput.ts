@@ -174,6 +174,11 @@ export async function encodeWithFallback(encode: (step: EncodeStep) => Promise<U
 	return { ok: false, reason: lastReason };
 }
 
+/** The exact bytes as an ArrayBuffer (copies only when the array is a view into a larger buffer). */
+export function toArrayBuffer(bytes: ImageBytes): ArrayBuffer {
+	return bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength ? bytes.buffer : bytes.slice().buffer;
+}
+
 export function bytesToBase64(bytes: Uint8Array): string {
 	let binary = '';
 	const chunk = 0x8000;

@@ -177,12 +177,19 @@ export class PhraseStore {
 	): Promise<{ entry: SavedEntry } | { failure: Omit<SaveFailure, 'draftIndex'> }> {
 		let lastTried = 0;
 		for (let attempt = 0; attempt < MAX_CREATE_ATTEMPTS; attempt++) {
-			// Recompute each time: the vault may have changed since the previous attempt.
-			const n = Math.max(await this.computeNextNumber(), lastTried + 1);
+			let n: number;
+			let path: string;
+			let markdown: string;
+			try {
+				// Recompute each time: the vault may have changed since the previous attempt.
+				n = Math.max(await this.computeNextNumber(), lastTried + 1);
+				path = notePathFor(n);
+				markdown = renderNote({ ...draft, number: n, screenshotPath, createdDate });
+			} catch (error) {
+				return { failure: { reason: 'note_write_failed', detail: describe(error) } };
+			}
 			lastTried = n;
-			const path = notePathFor(n);
 			if (this.vault.kind(path) !== null) continue; // never touch an existing file
-			const markdown = renderNote({ ...draft, number: n, screenshotPath, createdDate });
 			try {
 				await this.vault.create(path, markdown);
 				return { entry: { number: n, path, phrase: draft.phrase } };

@@ -249,6 +249,15 @@ describe('saveBatch — collisions and partial failures', () => {
 		expect(highWater.value).toBe(1);
 	});
 
+	it('reports (instead of throwing) when INDEX.md cannot be read while picking a number', async () => {
+		await store.ensureStructure();
+		const originalRead = vault.read.bind(vault);
+		vault.read = (path: string) => (path === 'INDEX.md' ? Promise.reject(new Error('read failed')) : originalRead(path));
+		const report = await store.saveBatch({ image: null, drafts: [draft('a')], createdDate: DATE });
+		expect(report.failure).toEqual({ reason: 'note_write_failed', draftIndex: 0, detail: 'read failed' });
+		expect(vault.listFileNames('Phrases')).toEqual([]);
+	});
+
 	it('writes no notes when the attachment cannot be saved', async () => {
 		vault.beforeCreate = (path) => {
 			if (path.startsWith('Attachments/')) throw new Error('permission denied');
