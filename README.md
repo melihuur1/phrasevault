@@ -18,7 +18,7 @@ Screenshots: see docs/screenshots/README.md, then remove this comment.
 
 - **Three ways to get a screenshot in:** read the clipboard, press Ctrl+V inside the window, or pick a PNG/JPEG file.
 - **Preview first.** Nothing leaves your computer until you click **Analiz et**. Analysis can be cancelled, and showing the same screenshot again in the same session never sends or bills it twice.
-- **Every useful expression, not just the obvious idiom.** Claude looks at each sentence for all genuinely useful multiword expressions, including grammatical constructions and expressions that sit next to or overlap each other ("None of them were meant to make it" → *be meant to* and *make it*). It returns up to eight, but only as many as are worth learning.
+- **Every useful expression, not just the obvious idiom.** Claude looks at each sentence for all genuinely useful multiword expressions, including grammatical constructions, expressions that sit next to or overlap each other ("None of them were meant to make it" → *be meant to* and *make it*), and expressions nested inside a longer construction ("looking forward to hearing from her" → *look forward to* and *hear from someone*). Phrases are given in their complete form (*put something behind you*, not *put behind*). It returns up to eight, but only as many as are worth learning; when there are more, generic structures such as *have to* are dropped first.
 - **Highlighted and plain text.** If you highlight or underline an expression before taking the screenshot, it is listed first.
 - **Learning details for each expression:**
   - what it means in this sentence
@@ -30,7 +30,7 @@ Screenshots: see docs/screenshots/README.md, then remove this comment.
 - **Checks on what the AI says.**
   - A warning appears when the quoted wording is not in the source sentence.
   - An "example" that just repeats the screenshot text is dropped.
-  - A fragment of a longer expression from the same sentence (*pick up* inside *pick up the slack*) starts unselected, with a note saying why.
+  - A fragment of a longer expression from the same sentence (*pick up* inside *pick up the slack*) starts unselected, with a note saying why. If Claude returns more than eight suggestions, fragments are the first to be left out.
 - **Duplicate detection.** Phrases already in your notes or in `INDEX.md`, or repeated in the same batch, are flagged. Saving a duplicate needs an explicit "Farklı anlamla yine de kaydet".
 - **Safe, sequential numbering.** Numbers are never reused, existing notes are never overwritten, and `INDEX.md` is only appended to. Numbers keep their leading zeros in Reading view and continue past 9999.
 - **One copy of each screenshot.** The screenshot is stored once in `Attachments/` and embedded in every note made from it.
@@ -227,7 +227,7 @@ npm run build      # type-check + production bundle (main.js)
 
 Open `./dev-vault` in Obsidian with **Open folder as vault**, then turn on community plugins once. This vault is disposable, gitignored, and the only vault the dev scripts write to. The install script refuses any target outside the repository.
 
-**Tests** cover numbering, the index, note rendering, duplicates, image validation, the AI response schema and errors (mocked responses), cost calculation and the usage history, the review logic, index repair, and full save workflows against an in-memory vault. Regression fixtures in `tests/fixtures/ai/` cover a missed grammatical construction (*be meant to* + *make it*), overlapping versus redundant nested expressions, an ambiguous context, and translations with generated examples. `tests/setup.ts` replaces `fetch`, `XMLHttpRequest` and `WebSocket` with stubs that throw, so the suite can never make a paid request.
+**Tests** cover numbering, the index, note rendering, duplicates, image validation, the AI response schema and errors (mocked responses), cost calculation and the usage history, the review logic, index repair, and full save workflows against an in-memory vault. Regression fixtures in `tests/fixtures/ai/` cover a missed grammatical construction (*be meant to* + *make it*), overlapping versus redundant nested expressions, a nested expression that must survive the eight-item limit (*hear from someone*), an ambiguous context, and translations with generated examples. `tests/setup.ts` replaces `fetch`, `XMLHttpRequest` and `WebSocket` with stubs that throw, so the suite can never make a paid request.
 
 **Releases:** bump the version with `npm version <x.y.z>` (this also updates `manifest.json` and `versions.json`), then push the tag. The release workflow builds and attaches `main.js`, `manifest.json` and `styles.css` to a draft GitHub release.
 
@@ -235,7 +235,7 @@ Open `./dev-vault` in Obsidian with **Open folder as vault**, then turn on commu
 
 - **Desktop only.** The workflow is built around desktop screenshots; mobile is not supported.
 - **The AI can misread text,** miss a highlight or a construction, or explain something imprecisely. That's why every suggestion is reviewed and editable, and why mismatches with the source sentence are flagged. The automated tests check how answers are handled, not how good the model's answers are; that is checked by hand.
-- **Fragment detection is a hint.** A suggestion is marked as part of a longer one when both its phrase and its wording sit inside the longer suggestion from the same sentence. It is only unselected, never removed, so you can still keep it.
+- **Fragment detection is a hint.** A suggestion is marked as part of a longer one when both its phrase and its wording sit inside the longer suggestion from the same sentence. It is only unselected, so you can still keep it; it is left out only when there are more than eight suggestions.
 - **Interface language:** the UI and the explanations are in Turkish only.
 - **One entry per line in `INDEX.md`** relies on Obsidian's default *Strict line breaks: off*. With it on, Reading view joins the lines; the file itself is unaffected.
 - **Duplicate detection** compares the `phrase` in note properties and the `INDEX.md` link aliases. Notes written by hand without those aren't recognized.

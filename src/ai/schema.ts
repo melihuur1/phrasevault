@@ -33,7 +33,11 @@ export interface RawAnalysis {
 const SUGGESTION_JSON_SCHEMA = {
 	type: 'object',
 	properties: {
-		phrase: { type: 'string', description: 'Dictionary form without inflection, e.g. "put off" for "putting off", "be meant to" for "were meant to".' },
+		phrase: {
+			type: 'string',
+			description:
+				'Complete dictionary form without inflection, e.g. "put off" for "putting off", "be meant to" for "were meant to"; "someone"/"something" where the object is needed ("put something behind you", not "put behind").',
+		},
 		originalText: {
 			type: 'string',
 			description: 'The expression exactly as written in the screenshot, with its inflection; it appears in sourceSentence.',

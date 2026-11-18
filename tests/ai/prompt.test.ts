@@ -41,18 +41,57 @@ describe('SYSTEM_PROMPT — what to extract (regression: "be meant to" was misse
 	});
 
 	it('rules out meaningless fragments of larger expressions', () => {
-		expect(SYSTEM_PROMPT).toMatch(/Never return a fragment of a larger expression/);
+		expect(SYSTEM_PROMPT).toMatch(/Never return a fragment that has no meaning of its own/);
 		expect(SYSTEM_PROMPT).toContain('for "pick up the slack" return only the idiom');
-		expect(SYSTEM_PROMPT).toContain('"looking forward to hearing from you" contains "look forward to" and "hear from"');
 	});
 
 	it('puts quality over quantity and forbids filler', () => {
 		expect(SYSTEM_PROMPT).toMatch(/Quality over quantity/);
 		expect(SYSTEM_PROMPT).toMatch(/Never add filler to reach a number/);
+		expect(SYSTEM_PROMPT).not.toMatch(/exactly (?:8|eight)/i);
 	});
 
-	it('keeps the user regression sentence out of the prompt, so manual testing stays honest', () => {
+	it('keeps the user regression sentences out of the prompt, so manual testing stays honest', () => {
 		expect(SYSTEM_PROMPT).not.toContain('None of them were meant to make it');
+		// Both Haiku and Sonnet missed "hear from" here; the prompt must teach the
+		// rule with other sentences, not with the answer.
+		expect(SYSTEM_PROMPT).not.toMatch(/hear(?:ing)? from|looking forward to/i);
+	});
+});
+
+describe('SYSTEM_PROMPT — nested expressions and priority (regression: "hear from" was missed)', () => {
+	it('asks to look inside every construction for an expression with its own meaning', () => {
+		expect(SYSTEM_PROMPT).toMatch(/Look inside every construction you find/);
+		expect(SYSTEM_PROMPT).toMatch(/The words that fill its slots/);
+		expect(SYSTEM_PROMPT).toContain(`"She's used to putting up with the noise" contains "be used to" and "put up with"`);
+		expect(SYSTEM_PROMPT).toContain('"You\'d better get rid of it" contains "had better" and "get rid of"');
+		expect(SYSTEM_PROMPT).toMatch(/A nested expression is just as worth learning as the construction around it/);
+	});
+
+	it('separates a nested expression from a fragment with one question', () => {
+		expect(SYSTEM_PROMPT).toMatch(/ask whether a learner would use the shorter expression, in this sense, in other sentences/);
+		expect(SYSTEM_PROMPT).toMatch(/if yes, it is a nested expression \(rule 8\); if not, it is a fragment/);
+		// The cross-reference must point at the nested-expression rule.
+		expect(SYSTEM_PROMPT).toMatch(/\n8\. Look inside every construction/);
+	});
+
+	it('drops generic structures first at the limit and keeps nested expressions', () => {
+		expect(SYSTEM_PROMPT).toMatch(/If a text has more candidates than that, drop the most generic, everyday structures first/);
+		expect(SYSTEM_PROMPT).toContain('("have to", "want to", "be able to", "there is")');
+		expect(SYSTEM_PROMPT).toMatch(/keep phrasal verbs, idioms and collocations, including nested ones/);
+	});
+
+	it('asks for complete canonical forms instead of cut-down ones', () => {
+		expect(SYSTEM_PROMPT).toMatch(/Give the complete form, never a cut-down one/);
+		expect(SYSTEM_PROMPT).toContain('("put something behind you", not "put behind"');
+		expect(SYSTEM_PROMPT).toContain('Do not add objects the expression does not need ("put off", "give up", "run out of")');
+		expect(SYSTEM_PROMPT).toContain('include the words that stand in for it ("put it all behind her")');
+		expect(ANALYSIS_JSON_SCHEMA.properties.suggestions.items.properties.phrase.description).toContain('not "put behind"');
+	});
+
+	it('numbers the rules without gaps', () => {
+		const numbers = [...SYSTEM_PROMPT.split('Example of the expected depth')[0]!.matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1]));
+		expect(numbers).toEqual(Array.from({ length: numbers.length }, (_, i) => i + 1));
 	});
 });
 

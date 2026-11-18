@@ -177,8 +177,24 @@ export function parseAnalysisText(text: string): AnalysisResult {
 	}
 
 	// Highlighted expressions first; otherwise keep the model's order. Then cap,
-	// and mark fragments among what is shown.
-	const ordered = [...suggestions.filter((s) => s.highlighted), ...suggestions.filter((s) => !s.highlighted)].slice(0, MAX_SUGGESTIONS);
+	// and mark fragments again among what is shown, so "part of" always names a
+	// card the user can see.
+	const ordered = [...suggestions.filter((s) => s.highlighted), ...suggestions.filter((s) => !s.highlighted)];
+	const shown = capSuggestions(ordered);
+	markFragments(shown);
+	return { status: parsed.status, suggestions: shown };
+}
+
+/**
+ * Keeps at most MAX_SUGGESTIONS without changing the order. Over the limit,
+ * redundant fragments are left out first (the last ones first), so they never
+ * push out an expression with its own meaning; only then is the end of the
+ * model's list cut.
+ */
+function capSuggestions(ordered: Suggestion[]): Suggestion[] {
+	const excess = ordered.length - MAX_SUGGESTIONS;
+	if (excess <= 0) return ordered;
 	markFragments(ordered);
-	return { status: parsed.status, suggestions: ordered };
+	const leftOut = new Set(ordered.filter((s) => s.partOf !== null).slice(-excess));
+	return ordered.filter((s) => !leftOut.has(s)).slice(0, MAX_SUGGESTIONS);
 }

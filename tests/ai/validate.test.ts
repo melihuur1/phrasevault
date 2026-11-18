@@ -210,6 +210,93 @@ describe('regression: overlapping and nested expressions', () => {
 	});
 });
 
+describe('regression: a nested expression is kept and prioritized ("hear from" was missed)', () => {
+	const sentence = "I'm really looking forward to hearing from her.";
+	const lookForwardTo = () =>
+		suggestion({ phrase: 'look forward to', originalText: 'looking forward to', turkishMeaning: 'dört gözle beklemek', sourceSentence: sentence });
+	const hearFrom = () =>
+		suggestion({ phrase: 'hear from someone', originalText: 'hearing from her', turkishMeaning: 'birinden haber almak', sourceSentence: sentence });
+	const parse = (items: Record<string, unknown>[]) => parseAnalysisText(JSON.stringify({ status: 'unmarked', suggestions: items })).suggestions;
+	/** Distinct expressions, each from its own sentence, to fill the list. */
+	const others = (count: number) =>
+		Array.from({ length: count }, (_, i) =>
+			suggestion({ phrase: `expression ${i + 1}`, originalText: `expression ${i + 1}`, sourceSentence: `This is expression ${i + 1}.` }),
+		);
+
+	it('keeps the construction and the expression nested in its slot as two selected suggestions', () => {
+		const parsed = parse([lookForwardTo(), hearFrom()]);
+		expect(parsed.map((s) => [s.phrase, s.originalText, s.partOf, s.sourceMismatch])).toEqual([
+			['look forward to', 'looking forward to', null, false],
+			['hear from someone', 'hearing from her', null, false],
+		]);
+	});
+
+	it('keeps the complete form with its placeholder exactly as given', () => {
+		expect(parseOne({ phrase: 'put something behind you', originalText: 'put it all behind her', sourceSentence: 'She put it all behind her.' })).toMatchObject({
+			phrase: 'put something behind you',
+			originalText: 'put it all behind her',
+			sourceMismatch: false,
+		});
+	});
+
+	it('over the limit, leaves out a redundant fragment before a nested expression', () => {
+		const parsed = parse([
+			lookForwardTo(),
+			suggestion({ phrase: 'pick up the slack', originalText: 'pick up the slack', sourceSentence: 'Someone has to pick up the slack.' }),
+			suggestion({ phrase: 'pick up', originalText: 'pick up', sourceSentence: 'Someone has to pick up the slack.' }),
+			...others(5),
+			hearFrom(),
+		]);
+		expect(parsed).toHaveLength(8);
+		expect(parsed.map((s) => s.phrase)).toEqual(['look forward to', 'pick up the slack', ...others(5).map((s) => s['phrase']), 'hear from someone']);
+		expect(parsed.every((s) => s.partOf === null)).toBe(true);
+	});
+
+	it('leaves out only as many fragments as needed, the last ones first, and keeps the order', () => {
+		const parsed = parse([
+			suggestion({ phrase: 'give up on', originalText: 'gave up on', sourceSentence: 'She gave up on him.' }),
+			suggestion({ phrase: 'give up', originalText: 'gave up', sourceSentence: 'She gave up on him.' }),
+			suggestion({ phrase: 'pick up the slack', originalText: 'pick up the slack', sourceSentence: 'Someone has to pick up the slack.' }),
+			...others(5),
+			suggestion({ phrase: 'pick up', originalText: 'pick up', sourceSentence: 'Someone has to pick up the slack.' }),
+		]);
+		expect(parsed.map((s) => [s.phrase, s.partOf])).toEqual([
+			['give up on', null],
+			['give up', 'give up on'],
+			['pick up the slack', null],
+			...others(5).map((s) => [s['phrase'], null]),
+		]);
+	});
+
+	it("without fragments, keeps the model's order and cuts the end (the prompt asks for the most useful first)", () => {
+		const parsed = parse([lookForwardTo(), ...others(7), hearFrom(), ...others(9).slice(7)]);
+		expect(parsed.map((s) => s.phrase)).toEqual(['look forward to', ...others(7).map((s) => s['phrase'])]);
+	});
+
+	it('never leaves out a highlighted expression to make room', () => {
+		const parsed = parse([
+			...others(8),
+			suggestion({ phrase: 'pick up the slack', originalText: 'pick up the slack', sourceSentence: 'Pick up the slack.' }),
+			suggestion({ phrase: 'pick up', originalText: 'pick up', sourceSentence: 'Pick up the slack.', highlighted: true }),
+		]);
+		expect(parsed[0]).toMatchObject({ phrase: 'pick up', highlighted: true, partOf: null });
+		expect(parsed).toHaveLength(8);
+	});
+
+	it('under the limit, keeps a fragment in place for the user to decide', () => {
+		const parsed = parse([
+			suggestion({ phrase: 'pick up the slack', originalText: 'pick up the slack', sourceSentence: 'Someone has to pick up the slack.' }),
+			suggestion({ phrase: 'pick up', originalText: 'pick up', sourceSentence: 'Someone has to pick up the slack.' }),
+			hearFrom(),
+		]);
+		expect(parsed.map((s) => [s.phrase, s.partOf])).toEqual([
+			['pick up the slack', null],
+			['pick up', 'pick up the slack'],
+			['hear from someone', null],
+		]);
+	});
+});
+
 describe('regression: ambiguous context is acknowledged, not hidden', () => {
 	it('keeps the context note so the card can show it', () => {
 		const [item] = parseAnalysisText(fixture('context-ambiguous.json')).suggestions;
