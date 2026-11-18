@@ -1,51 +1,53 @@
+[🇹🇷 Türkçe](README.md) | [🇬🇧 English](README.en.md)
+
 # PhraseVault
 
-PhraseVault is an Obsidian desktop plugin that turns screenshots of English text into numbered, AI-annotated phrase notes for Turkish speakers.
+PhraseVault, İngilizce metinlerin ekran görüntülerini yapay zekâ ile açıklanmış, numaralı ifade notlarına dönüştüren bir Obsidian masaüstü eklentisidir. Türkçe konuşanlar için tasarlanmıştır.
 
-Take a screenshot of a subtitle, article or chat (Win+Shift+S), paste it into PhraseVault, and Claude suggests the expressions worth learning: phrasal verbs, idioms, collocations, fixed expressions and grammatical constructions such as *be meant to*. Each comes with its meaning in that sentence, a short usage note, a Turkish translation of the sentence and, when it helps, an extra example. You review and edit the suggestions, and PhraseVault saves each one as a numbered note (`Phrases/0001.md`, …) and adds it to a growing `INDEX.md`.
+Bir altyazının, makalenin ya da sohbetin ekran görüntüsünü alın (Win+Shift+S) ve PhraseVault'a yapıştırın. Claude öğrenmeye değer ifadeleri önerir: phrasal verb'ler, deyimler, eşdizimler (collocation), kalıp ifadeler ve *be meant to* gibi dilbilgisi kalıpları. Her önerinin yanında ifadenin o cümledeki anlamı, kısa bir kullanım notu, cümlenin Türkçe çevirisi ve işe yaradığı durumlarda ek bir örnek bulunur. Önerileri inceleyip düzenlersiniz; PhraseVault da her birini numaralı bir not olarak kaydeder (`Phrases/0001.md`, …) ve giderek büyüyen `INDEX.md` dosyasına ekler.
 
-The interface is in Turkish. The plugin uses one AI provider, the Anthropic API, with your own API key.
+Arayüz Türkçedir. Eklenti yapay zekâ sağlayıcısı olarak yalnızca Anthropic API'yi kullanır ve sizin kendi API anahtarınızla çalışır.
 
 <!--
-Screenshots: see docs/screenshots/README.md, then remove this comment.
+Ekran görüntüleri: docs/screenshots/README.md dosyasına bakın, ardından bu yorumu kaldırın.
 
-![Import window with a screenshot preview](docs/screenshots/preview.png)
-![Editable suggestion cards with the estimated cost](docs/screenshots/review.png)
-![INDEX.md in Reading view](docs/screenshots/index.png)
+![Ekran görüntüsü önizlemesiyle içe aktarma penceresi](docs/screenshots/preview.png)
+![Tahmini maliyetle birlikte düzenlenebilir öneri kartları](docs/screenshots/review.png)
+![Okuma görünümünde INDEX.md](docs/screenshots/index.png)
 -->
 
-## Features
+## Özellikler
 
-- **Three ways to get a screenshot in:** read the clipboard, press Ctrl+V inside the window, or pick a PNG/JPEG file.
-- **Preview first.** Nothing leaves your computer until you click **Analiz et**. Analysis can be cancelled, and showing the same screenshot again in the same session never sends or bills it twice.
-- **Every useful expression, not just the obvious idiom.** Claude looks at each sentence for all genuinely useful multiword expressions, including grammatical constructions, expressions that sit next to or overlap each other ("None of them were meant to make it" → *be meant to* and *make it*), and expressions nested inside a longer construction ("looking forward to hearing from her" → *look forward to* and *hear from someone*). Phrases are given in their complete form (*put something behind you*, not *put behind*). It returns up to eight, but only as many as are worth learning; when there are more, generic structures such as *have to* are dropped first.
-- **Highlighted and plain text.** If you highlight or underline an expression before taking the screenshot, it is listed first.
-- **Learning details for each expression:**
-  - what it means in this sentence
-  - how it works (pattern, what follows it, register)
-  - a natural Turkish translation of the sentence
-  - an optional extra example with its translation, clearly marked as generated
-  - a context note whenever the visible text doesn't settle the meaning, instead of a guess
-- **Compact, editable suggestion cards.** Each card shows the expression, category, Turkish meaning and source sentence. Everything else is folded under **Ayrıntılar** and can be edited there too. Untick a card to skip it, or add a phrase by hand when the AI misses one or fails.
-- **Checks on what the AI says.**
-  - A warning appears when the quoted wording is not in the source sentence.
-  - An "example" that just repeats the screenshot text is dropped.
-  - A fragment of a longer expression from the same sentence (*pick up* inside *pick up the slack*) starts unselected, with a note saying why. If Claude returns more than eight suggestions, fragments are the first to be left out.
-- **Duplicate detection.** Phrases already in your notes or in `INDEX.md`, or repeated in the same batch, are flagged. Saving a duplicate needs an explicit "Farklı anlamla yine de kaydet".
-- **Safe, sequential numbering.** Numbers are never reused, existing notes are never overwritten, and `INDEX.md` is only appended to. Numbers keep their leading zeros in Reading view and continue past 9999.
-- **One copy of each screenshot.** The screenshot is stored once in `Attachments/` and embedded in every note made from it.
-- **Estimated cost of every analysis.** The suggestion screen shows the tokens used and the estimated cost, and the settings keep a running total that you can reset.
-- **"İndeksi onar" (repair index).** Restores missing `INDEX.md` entries for existing notes, and reports anything ambiguous instead of guessing.
-- **No lost edits.** Closing the window or starting over asks first when there are unsaved edits.
+- **Ekran görüntüsünü içe aktarmanın üç yolu:** panoyu okuyun, pencere içindeyken Ctrl+V'ye basın ya da bir PNG/JPEG dosyası seçin.
+- **Önce önizleme.** **Analiz et**'e tıklayana kadar bilgisayarınızdan hiçbir şey çıkmaz. Analiz iptal edilebilir; aynı oturumda aynı ekran görüntüsü yeniden gösterildiğinde ne ikinci kez gönderilir ne de ikinci kez ücretlendirilir.
+- **Yalnızca en bariz deyim değil, işe yarayan her ifade.** Claude her cümlede gerçekten işe yarayan tüm çok sözcüklü ifadeleri arar: dilbilgisi kalıpları, yan yana duran ya da birbiriyle örtüşen ifadeler ("None of them were meant to make it" → *be meant to* ve *make it*) ve daha uzun bir yapının içine yerleşmiş ifadeler ("looking forward to hearing from her" → *look forward to* ve *hear from someone*). İfadeler tam biçimleriyle verilir (*put behind* değil, *put something behind you*). En fazla sekiz öneri döner, ama yalnızca öğrenmeye değer olanlar kadar; aday daha fazlaysa önce *have to* gibi genel yapılar elenir.
+- **Vurgulu ve düz metin.** Ekran görüntüsünü almadan önce bir ifadeyi vurgular ya da altını çizerseniz, o ifade listenin en başında yer alır.
+- **Her ifade için öğrenme ayrıntıları:**
+  - bu cümlede ne anlama geldiği
+  - nasıl kullanıldığı (kalıbı, ardından ne geldiği, üslubu)
+  - cümlenin doğal bir Türkçe çevirisi
+  - isteğe bağlı, çevirisiyle birlikte ek bir örnek; yapay zekâ tarafından üretildiği açıkça belirtilir
+  - görünen metin anlamı netleştirmediğinde, tahmin yürütmek yerine bir bağlam notu
+- **Derli toplu, düzenlenebilir öneri kartları.** Her kart ifadeyi, kategorisini, Türkçe anlamını ve kaynak cümleyi gösterir. Geri kalan her şey **Ayrıntılar** altında katlanmış durumdadır ve orada da düzenlenebilir. Bir kartı atlamak için işaretini kaldırın; yapay zekâ bir ifadeyi kaçırdığında ya da analiz başarısız olduğunda ifadeyi elle ekleyin.
+- **Yapay zekânın söylediklerine yönelik denetimler.**
+  - Alıntılanan ifade kaynak cümlede geçmiyorsa uyarı gösterilir.
+  - Ekran görüntüsündeki metni olduğu gibi tekrarlayan bir "örnek" atılır.
+  - Aynı cümledeki daha uzun bir ifadenin yalnızca parçası olan bir öneri (*pick up the slack* içindeki *pick up*) işaretsiz başlar ve nedeni bir notla belirtilir. Claude sekizden fazla öneri döndürürse ilk elenenler bu parçalardır.
+- **Yinelenen ifade tespiti.** Notlarınızda ya da `INDEX.md`'de zaten bulunan veya aynı kayıt işleminde birden fazla kez geçen ifadeler işaretlenir. Yinelenen bir ifadeyi kaydetmek için ayrıca "Farklı anlamla yine de kaydet" onayı gerekir.
+- **Güvenli, sıralı numaralandırma.** Numaralar asla yeniden kullanılmaz, mevcut notların üzerine asla yazılmaz ve `INDEX.md`'ye yalnızca yeni satır eklenir. Numaralar okuma görünümünde (Reading view) baştaki sıfırlarını korur ve 9999'dan sonra da devam eder.
+- **Her ekran görüntüsünden tek kopya.** Ekran görüntüsü `Attachments/` klasörüne bir kez kaydedilir ve ondan oluşturulan her nota gömülür.
+- **Her analizin tahmini maliyeti.** Öneri ekranı kullanılan token'ları ve tahmini maliyeti gösterir; ayarlarda ise sıfırlayabileceğiniz birikimli bir toplam tutulur.
+- **"İndeksi onar".** Mevcut notlar için `INDEX.md`'de eksik olan girdileri geri ekler; belirsiz durumlarda tahmin yürütmek yerine bunları raporlar.
+- **Düzenlemeler kaybolmaz.** Kaydedilmemiş düzenlemeler varken pencereyi kapatmak ya da baştan başlamak önce onay ister.
 
-## How it works
+## Nasıl çalışır
 
-1. Take a screenshot with **Win+Shift+S**.
-2. Run **PhraseVault: Panodan ekran görüntüsü içe aktar** (import from clipboard) from the command palette, or click the ribbon icon. You see a preview and the number the next phrase will get.
-3. Click **Analiz et** or press Enter. Claude returns suggestions in a few seconds.
-4. Edit, select or add phrases, then click **Seçilenleri kaydet** or press Ctrl+Enter.
+1. **Win+Shift+S** ile ekran görüntüsü alın.
+2. Komut paletinden **PhraseVault: Panodan ekran görüntüsü içe aktar** komutunu çalıştırın ya da kenar şeridindeki (ribbon) simgeye tıklayın. Bir önizleme ve sıradaki ifadeye verilecek numara görünür.
+3. **Analiz et**'e tıklayın ya da Enter'a basın. Claude önerileri birkaç saniye içinde döndürür.
+4. İfadeleri düzenleyin, seçin ya da yenilerini ekleyin; ardından **Seçilenleri kaydet**'e tıklayın ya da Ctrl+Enter'a basın.
 
-This creates, for example:
+Bunun sonucunda örneğin şu dosyalar oluşur:
 
 ```
 INDEX.md
@@ -54,7 +56,7 @@ Phrases/0002.md
 Attachments/pv-3f9a1c2b7d10e4a5.png
 ```
 
-`INDEX.md` grows one line per saved phrase:
+`INDEX.md`'ye kaydedilen her ifade için bir satır eklenir:
 
 ```markdown
 # PhraseVault İndeksi
@@ -63,7 +65,7 @@ Attachments/pv-3f9a1c2b7d10e4a5.png
 0002 — [[Phrases/0002|put off]]
 ```
 
-Each note keeps the key data in its frontmatter (properties) and the complete learning content in its body. Text from the screenshot and generated text are labelled separately:
+Her not, temel verileri frontmatter'ında (özellikler) ve öğrenme içeriğinin tamamını gövdesinde tutar. Ekran görüntüsünden gelen metin ile yapay zekânın ürettiği metin ayrı ayrı etiketlenir:
 
 ```markdown
 ---
@@ -98,94 +100,96 @@ tags:
 *Eklenme tarihi: 2026-11-18*
 ```
 
-### Commands
+### Komutlar
 
-| Command (Turkish UI) | What it does |
+| Komut | Ne yapar |
 |---|---|
-| Panodan ekran görüntüsü içe aktar | Import a screenshot from the clipboard (also the ribbon icon) |
-| Dosyadan ekran görüntüsü içe aktar | Import a PNG/JPEG file |
-| Klasör yapısını ve INDEX.md dosyasını hazırla | Create `Phrases/`, `Attachments/` and `INDEX.md` if they are missing |
-| İndeksi onar | Compare the notes with `INDEX.md`, preview the fixes, and add the missing entries |
+| Panodan ekran görüntüsü içe aktar | Panodaki ekran görüntüsünü içe aktarır (kenar şeridindeki simge de aynı işi yapar) |
+| Dosyadan ekran görüntüsü içe aktar | Bir PNG/JPEG dosyasını içe aktarır |
+| Klasör yapısını ve INDEX.md dosyasını hazırla | Eksikse `Phrases/`, `Attachments/` ve `INDEX.md`'yi oluşturur |
+| İndeksi onar | Notları `INDEX.md` ile karşılaştırır, düzeltmeleri önizletir ve eksik girdileri ekler |
 
-No default hotkeys are assigned. You can set your own under **Settings → Hotkeys**.
+Varsayılan kısayol tuşu atanmamıştır. Kendi kısayollarınızı **Settings → Hotkeys** altında belirleyebilirsiniz.
 
-## Installation
+## Kurulum
 
-Requires Obsidian **1.11.4 or later** on desktop (Windows, macOS, Linux).
+Masaüstünde (Windows, macOS, Linux) Obsidian **1.11.4 veya üstü** gerekir.
 
-PhraseVault is not in the Community Plugins directory yet. Until it is, install it manually:
+PhraseVault henüz Topluluk Eklentileri (Community Plugins) dizininde yer almıyor. O zamana kadar eklentiyi elle kurabilirsiniz:
 
-1. Download `main.js`, `manifest.json` and `styles.css` from the latest GitHub release.
-2. Create the folder `<your vault>/.obsidian/plugins/phrasevault/` and put the three files in it.
-3. In Obsidian, go to **Settings → Community plugins**, turn off Restricted mode if needed, and enable **PhraseVault**.
+1. En son GitHub sürümünden (release) `main.js`, `manifest.json` ve `styles.css` dosyalarını indirin.
+2. `<your vault>/.obsidian/plugins/phrasevault/` klasörünü oluşturun (`<your vault>`, Obsidian kasanızın (vault) klasörüdür) ve üç dosyayı bu klasöre koyun.
+3. Obsidian'da **Settings → Community plugins** bölümüne gidin, gerekirse Restricted mode'u kapatın ve **PhraseVault**'u etkinleştirin.
 
-To get updates automatically, add the repository to the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin instead.
+Güncellemeleri otomatik olarak almak isterseniz bunun yerine depoyu [BRAT](https://github.com/TfTHacker/obsidian42-brat) eklentisine ekleyebilirsiniz.
 
-## Anthropic API configuration
+> Bu belgedeki Obsidian menü adları, Obsidian'ın İngilizce arayüzündeki hâlleriyle verilmiştir. PhraseVault'un kendi komut ve ayar adları ise eklentide göründüğü gibi Türkçedir.
 
-PhraseVault calls the Anthropic Messages API with **Claude Haiku 5.5** (`claude-haiku-5-5`) by default. You need your own API key. **A Claude Pro or Max subscription does not include API usage.**
+## Anthropic API yapılandırması
 
-1. Create an account at [console.anthropic.com](https://console.anthropic.com) and add prepaid credits under **Billing**. A low monthly spend limit is a good idea.
-2. Create an API key under **API keys**.
-3. In Obsidian, go to **Settings → PhraseVault → Anthropic API anahtarı**, create a secret, and paste the key into it.
+PhraseVault, varsayılan olarak Anthropic Messages API'yi **Claude Haiku 5.5** (`claude-haiku-5-5`) modeliyle çağırır. Kendi API anahtarınıza ihtiyacınız vardır. **Claude Pro veya Max aboneliği API kullanımını kapsamaz.**
 
-The key is stored in Obsidian's secret storage. PhraseVault's own settings file only holds the *name* of the secret. On desktop, secret storage is separate for each vault, so a test vault and your real vault each need the key entered separately.
+1. [console.anthropic.com](https://console.anthropic.com) adresinde bir hesap oluşturun ve **Billing** bölümünden ön ödemeli kredi yükleyin. Düşük bir aylık harcama limiti belirlemeniz önerilir.
+2. **API keys** bölümünden bir API anahtarı oluşturun.
+3. Obsidian'da **Settings → PhraseVault → Anthropic API anahtarı** bölümüne gidin, yeni bir gizli anahtar (secret) oluşturun ve API anahtarınızı içine yapıştırın.
 
-The **Model** setting can be changed. Estimated costs are calculated for Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5. Other models still work, but their cost shows as "Maliyet hesaplanamadı" (cost could not be calculated).
+Anahtar, Obsidian'ın gizli anahtar deposunda (secret storage) saklanır. PhraseVault'un kendi ayar dosyası yalnızca bu gizli anahtarın *adını* tutar. Masaüstünde gizli anahtar deposu her kasa için ayrıdır; bu yüzden bir test kasasına ve asıl kasanıza anahtarı ayrı ayrı girmeniz gerekir.
 
-## API costs and cost tracking
+**Model** ayarı değiştirilebilir. Tahmini maliyet Claude Haiku 5.5, Sonnet 5.5 ve Opus 5.5 için hesaplanır. Diğer modeller de çalışır, ancak maliyetleri "Maliyet hesaplanamadı" olarak görünür.
 
-Prices for Claude Haiku 5.5 on the standard API, checked against the [official pricing page](https://platform.claude.com/docs/en/about-claude/pricing) on 2026-11-18:
+## API maliyetleri ve maliyet takibi
 
-| Per million tokens | Prompts up to 100K tokens | Prompts over 100K tokens |
+Standart API'de Claude Haiku 5.5 fiyatları, 2026-11-18 tarihinde [resmî fiyatlandırma sayfasıyla](https://platform.claude.com/docs/en/about-claude/pricing) karşılaştırılarak doğrulanmıştır:
+
+| Milyon token başına | 100K token'a kadar istemler | 100K token'ı aşan istemler |
 |---|---|---|
-| Input | $0.10 | $0.50 |
-| Output | $0.50 | $2.50 |
-| 5-minute cache write | $0.125 | $0.625 |
-| 1-hour cache write | $0.20 | $1.00 |
-| Cache read | $0.01 | $0.05 |
+| Girdi | $0.10 | $0.50 |
+| Çıktı | $0.50 | $2.50 |
+| 5 dakikalık önbelleğe yazma | $0.125 | $0.625 |
+| 1 saatlik önbelleğe yazma | $0.20 | $1.00 |
+| Önbellekten okuma | $0.01 | $0.05 |
 
-A typical screenshot analysis uses a few thousand input tokens (the image plus the fixed instructions) and a few thousand output tokens, including the model's thinking (medium effort) and the learning details. That comes to about **$0.002–0.004 per analysis**; the real amount for each analysis is shown on the suggestion screen.
+Tipik bir ekran görüntüsü analizi birkaç bin girdi token'ı (görüntü ve sabit talimatlar) ve birkaç bin çıktı token'ı kullanır; çıktıya modelin düşünme adımları (orta düzey, *medium effort*) ve öğrenme ayrıntıları dahildir. Bu da **analiz başına yaklaşık $0.002–0.004** eder; her analizin gerçek tutarı öneri ekranında gösterilir.
 
-### How the estimate is calculated
+### Tahmin nasıl hesaplanır
 
-After every response, PhraseVault reads the `usage` object that the API returns, and shows the input and output tokens, the model, and the estimated cost with six decimals (for example `Tahmini maliyet: $0.000813`).
+PhraseVault her yanıttan sonra API'nin döndürdüğü `usage` nesnesini okur; girdi ve çıktı token'larını, modeli ve altı ondalık basamaklı tahmini maliyeti gösterir (örneğin `Tahmini maliyet: $0.000813`).
 
-- **Tokens come only from the API response.** Image tokens are already part of `input_tokens` and thinking tokens are part of `output_tokens`, so neither is estimated or added separately.
-- **Cache writes and reads are priced separately** when the response reports them. The long-context prices apply when the whole prompt, including cache reads and writes, is over 100,000 tokens.
-- **US-only inference is priced at 1.1x** when the response reports `inference_geo: "us"`.
-- **Amounts are stored as integer picodollars** and rounded only for display, so totals don't drift.
-- **Billed failures count.** A refused, truncated or invalid answer was still billed, so it is recorded too.
-- **Nothing is counted twice.** Each response is recorded once, by its message ID. Reopening a result from the session cache shows the original estimate again without counting it.
-- **No guessing.** "Maliyet hesaplanamadı" appears instead of `$0` when the usage is missing, the model has no known price, or the request ran on a tier, speed mode or region PhraseVault has no prices for.
+- **Token sayıları yalnızca API yanıtından alınır.** Görüntü token'ları zaten `input_tokens`, düşünme token'ları da `output_tokens` içinde yer alır; bu yüzden ikisi de ayrıca tahmin edilmez ya da eklenmez.
+- **Önbelleğe yazma ve önbellekten okuma**, yanıt bunları bildirdiğinde **ayrı fiyatlandırılır**. Önbellek okuma ve yazmaları dahil istemin tamamı 100.000 token'ı aştığında uzun bağlam fiyatları uygulanır.
+- **Yalnızca ABD'de çıkarım (US-only inference)**, yanıt `inference_geo: "us"` bildirdiğinde **1,1 katı** üzerinden fiyatlandırılır.
+- **Tutarlar tam sayı pikodolar olarak saklanır** ve yalnızca gösterilirken yuvarlanır; böylece toplamlar zamanla kaymaz.
+- **Ücretlendirilen başarısız istekler de sayılır.** Reddedilen, yarıda kesilen ya da geçersiz bir yanıt yine de ücretlendirildiği için kaydedilir.
+- **Hiçbir şey iki kez sayılmaz.** Her yanıt, mesaj kimliğine (message ID) göre bir kez kaydedilir. Oturum önbelleğinden yeniden açılan bir sonuç ilk tahmini yeniden gösterir, ama tekrar sayılmaz.
+- **Tahmin yürütülmez.** Kullanım bilgisi eksikse, modelin bilinen bir fiyatı yoksa ya da istek PhraseVault'un fiyat bilgisine sahip olmadığı bir katmanda, hız modunda veya bölgede çalıştıysa `$0` yerine "Maliyet hesaplanamadı" görünür.
 
-The local history (in `data.json`) keeps a running total plus the last 50 records: date, model, token counts and estimate. It never stores images, prompts, responses or keys. **Settings → PhraseVault → Geçmişi sıfırla** resets it.
+Yerel geçmiş (`data.json` içinde) birikimli bir toplamı ve son 50 kaydı tutar: tarih, model, token sayıları ve tahmin. Görüntüleri, istemleri, yanıtları ya da anahtarları asla saklamaz. **Settings → PhraseVault → Geçmişi sıfırla** ile sıfırlanabilir.
 
-### Limitations of the estimate
+### Tahminin sınırlamaları
 
-- The amount is a **local estimate ("Tahmini maliyet")**, not your invoice. The exact amount is in the Anthropic Console.
-- Prices can change. They are a constant in `src/core/cost.ts` with the date they were checked.
-- A request that is cancelled or times out has no response, so its usage cannot be seen or counted, even though Anthropic may still bill it.
-- The SDK retries failed requests up to two times. Only the final response's usage is reported. Failed attempts such as rate limits and overloads are normally not billed.
+- Gösterilen tutar faturanız değil, **yerel bir tahmindir ("Tahmini maliyet")**. Kesin tutar Anthropic Console'da yer alır.
+- Fiyatlar değişebilir. Fiyatlar, kontrol edildikleri tarihle birlikte `src/core/cost.ts` içinde sabit olarak tutulur.
+- İptal edilen ya da zaman aşımına uğrayan bir isteğin yanıtı olmadığı için kullanımı görülemez ve sayılamaz; Anthropic bu isteği yine de ücretlendirebilir.
+- SDK başarısız istekleri en fazla iki kez yeniden dener. Yalnızca son yanıtın kullanımı bildirilir. Hız sınırı (rate limit) ve aşırı yük (overload) gibi başarısız denemeler normalde ücretlendirilmez.
 
-## Privacy and local data
+## Gizlilik ve yerel veriler
 
-**What is sent, and when:** only the screenshot you previewed (scaled down to at most 2576 px if needed) and a fixed instruction text. It is sent only when you click **Analiz et**, over HTTPS, to `api.anthropic.com` and nowhere else. No other vault content (notes, file names, `INDEX.md`) is ever sent. Screenshots can contain personal information, so check the preview before sending.
+**Ne gönderilir, ne zaman:** yalnızca önizlediğiniz ekran görüntüsü (gerekirse en fazla 2576 piksele küçültülerek) ve sabit bir talimat metni. Bunlar yalnızca **Analiz et**'e tıkladığınızda, HTTPS üzerinden ve yalnızca `api.anthropic.com` adresine gönderilir, başka hiçbir yere gönderilmez. Kasanızdaki başka hiçbir içerik (notlar, dosya adları, `INDEX.md`) asla gönderilmez. Ekran görüntüleri kişisel bilgi içerebilir; göndermeden önce önizlemeyi kontrol edin.
 
-**At Anthropic:** API data is handled under Anthropic's [commercial terms and privacy policy](https://www.anthropic.com/legal/privacy). Under those terms, API inputs and outputs are not used for model training by default.
+**Anthropic tarafında:** API verileri Anthropic'in [ticari koşulları ve gizlilik politikası](https://www.anthropic.com/legal/privacy) kapsamında işlenir. Bu koşullara göre API girdileri ve çıktıları varsayılan olarak model eğitiminde kullanılmaz.
 
-**What stays on your computer:**
+**Bilgisayarınızda kalanlar:**
 
-| Where | What |
+| Konum | İçerik |
 |---|---|
-| `Phrases/*.md`, `INDEX.md`, `Attachments/` | Your notes and screenshots, as ordinary vault files |
-| `.obsidian/plugins/phrasevault/data.json` | Secret name, model ID, highest issued number, cost history (token counts only) |
-| Obsidian secret storage | The API key |
-| Memory only | The last 20 analyses of this session, so the same screenshot isn't billed twice. Cleared when Obsidian closes. |
+| `Phrases/*.md`, `INDEX.md`, `Attachments/` | Notlarınız ve ekran görüntüleriniz, sıradan kasa dosyaları olarak |
+| `.obsidian/plugins/phrasevault/data.json` | Gizli anahtarın adı, model kimliği, verilen en yüksek numara, maliyet geçmişi (yalnızca token sayıları) |
+| Obsidian gizli anahtar deposu | API anahtarı |
+| Yalnızca bellek | Aynı ekran görüntüsü iki kez ücretlendirilmesin diye bu oturumdaki son 20 analiz. Obsidian kapandığında silinir. |
 
-There is no telemetry, no analytics, and no server of our own.
+Telemetri, kullanım analitiği ya da bize ait bir sunucu yoktur.
 
-## Architecture
+## Mimari
 
 ```
 Command / ribbon ──► ImportModal (UI state machine)
@@ -202,18 +206,18 @@ Command / ribbon ──► ImportModal (UI state machine)
                             └─ core/indexRepair   "İndeksi onar" planning
 ```
 
-- **`src/core/` is pure TypeScript** with no Obsidian imports, so numbering, index handling, note rendering, duplicates, image checks and cost calculation are all unit tested.
-- **Vault access goes through `VaultPort`**, a small interface. `obsidianVaultPort.ts` adapts Obsidian's `app.vault`, and the tests use an in-memory fake with failure and race hooks.
-- **Safety rules for your vault:**
-  - Notes and attachments are only ever *created* (`vault.create` fails if the path exists).
-  - `INDEX.md` is changed only through `vault.process`. The new content is checked again inside the callback, and existing lines are never edited, reordered or deleted.
-  - A note is written before its index line, so a failure can at most leave a note without an index entry, which "İndeksi onar" fixes.
-- **Numbering** is derived from what is in the vault, plus one high-water mark. That makes it the same after a restart, and it never reuses the number of a deleted or hand-edited entry.
-- **The AI is injected.** The Anthropic call is a function the tests replace with mocks. The client always uses `https://api.anthropic.com`, with SDK logging off, so environment variables can't redirect or log requests.
+- **`src/core/` saf TypeScript'tir** ve Obsidian'dan hiçbir şey içe aktarmaz; bu sayede numaralandırma, indeks işlemleri, not oluşturma, yinelenen ifade tespiti, görüntü denetimleri ve maliyet hesabının tamamı birim testleriyle sınanır.
+- **Kasaya erişim `VaultPort` üzerinden yapılır.** `VaultPort` küçük bir arayüzdür: `obsidianVaultPort.ts` Obsidian'ın `app.vault` nesnesini bu arayüze uyarlar; testler ise hata ve yarış durumu (race condition) kancaları olan, bellekte çalışan sahte bir kasa kullanır.
+- **Kasanız için güvenlik kuralları:**
+  - Notlar ve ekler yalnızca *oluşturulur* (yol zaten varsa `vault.create` başarısız olur).
+  - `INDEX.md` yalnızca `vault.process` ile değiştirilir. Yeni içerik geri çağırma (callback) içinde yeniden denetlenir; mevcut satırlar asla düzenlenmez, yeniden sıralanmaz ya da silinmez.
+  - Bir not, indeks satırından önce yazılır. Böylece bir hata en kötü ihtimalle indeks girdisi olmayan bir not bırakabilir; bunu da "İndeksi onar" düzeltir.
+- **Numaralandırma**, kasada bulunanlardan ve verilen en yüksek numarayı tutan tek bir kayıttan (high-water mark) türetilir. Bu sayede yeniden başlatmadan sonra da aynı kalır ve silinmiş ya da elle düzenlenmiş bir girdinin numarası asla yeniden kullanılmaz.
+- **Yapay zekâ çağrısı dışarıdan verilir (injected).** Anthropic çağrısı, testlerde sahte (mock) bir sürümle değiştirilen bir fonksiyondur. İstemci her zaman `https://api.anthropic.com` adresini kullanır ve SDK günlükleri kapalıdır; böylece ortam değişkenleri istekleri başka bir yere yönlendiremez ya da günlüğe yazdıramaz.
 
-## Development
+## Geliştirme
 
-Requirements: Node.js 22.12+ and Obsidian 1.11.4+ (desktop).
+Gereksinimler: Node.js 22.12+ ve Obsidian 1.11.4+ (masaüstü).
 
 ```bash
 npm install
@@ -225,25 +229,32 @@ npm run lint
 npm run build      # type-check + production bundle (main.js)
 ```
 
-Open `./dev-vault` in Obsidian with **Open folder as vault**, then turn on community plugins once. This vault is disposable, gitignored, and the only vault the dev scripts write to. The install script refuses any target outside the repository.
+Komutların kısa açıklaması:
 
-**Tests** cover numbering, the index, note rendering, duplicates, image validation, the AI response schema and errors (mocked responses), cost calculation and the usage history, the review logic, index repair, and full save workflows against an in-memory vault. Regression fixtures in `tests/fixtures/ai/` cover a missed grammatical construction (*be meant to* + *make it*), overlapping versus redundant nested expressions, a nested expression that must survive the eight-item limit (*hear from someone*), an ambiguous context, and translations with generated examples. `tests/setup.ts` replaces `fetch`, `XMLHttpRequest` and `WebSocket` with stubs that throw, so the suite can never make a paid request.
+- `npm run dev`: değişiklikleri izleyerek derler ve eklentiyi `./dev-vault` içine kopyalar.
+- `npm run build:dev`: `./dev-vault` için tek seferlik bir geliştirme derlemesi yapar (ücretsiz bir örnek yanıt düğmesi ekler).
+- `npm test`: birim ve entegrasyon testlerini çalıştırır; ağ erişimi engellidir, API anahtarı gerekmez.
+- `npm run build`: tür denetimi yapar ve üretim paketini (`main.js`) oluşturur.
 
-**Releases:** bump the version with `npm version <x.y.z>` (this also updates `manifest.json` and `versions.json`), then push the tag. The release workflow builds and attaches `main.js`, `manifest.json` and `styles.css` to a draft GitHub release.
+`./dev-vault` klasörünü Obsidian'da **Open folder as vault** ile açın, ardından topluluk eklentilerini bir kez etkinleştirin. Bu kasa, silinip yeniden oluşturulabilecek bir test kasasıdır, git tarafından yok sayılır (gitignore) ve geliştirme betiklerinin yazdığı tek kasadır. Kurulum betiği depo dışındaki hiçbir hedefe yazmayı kabul etmez.
 
-## Known limitations
+**Testler** şunları kapsar: numaralandırma, indeks, not oluşturma, yinelenen ifadeler, görüntü doğrulama, yapay zekâ yanıt şeması ve hataları (sahte yanıtlarla), maliyet hesabı ve kullanım geçmişi, inceleme mantığı, indeks onarımı ve bellekteki bir kasa üzerinde baştan sona kaydetme akışları. `tests/ai/` içindeki regresyon testleri, `tests/fixtures/ai/` içindeki örnek yanıtlarla birlikte şunları kapsar: kaçırılmış bir dilbilgisi kalıbı (*be meant to* + *make it*), örtüşen ifadeler ile gereksiz iç içe parçaların ayrımı, sekiz öneri sınırında elenmemesi gereken iç içe bir ifade (*hear from someone*), belirsiz bir bağlam ve üretilmiş örneklerle birlikte çeviriler. `tests/setup.ts`, `fetch`, `XMLHttpRequest` ve `WebSocket`'i çağrıldığında hata fırlatan taklitlerle değiştirir; böylece test paketi asla ücretli bir istek yapamaz.
 
-- **Desktop only.** The workflow is built around desktop screenshots; mobile is not supported.
-- **The AI can misread text,** miss a highlight or a construction, or explain something imprecisely. That's why every suggestion is reviewed and editable, and why mismatches with the source sentence are flagged. The automated tests check how answers are handled, not how good the model's answers are; that is checked by hand.
-- **Fragment detection is a hint.** A suggestion is marked as part of a longer one when both its phrase and its wording sit inside the longer suggestion from the same sentence. It is only unselected, so you can still keep it; it is left out only when there are more than eight suggestions.
-- **Interface language:** the UI and the explanations are in Turkish only.
-- **One entry per line in `INDEX.md`** relies on Obsidian's default *Strict line breaks: off*. With it on, Reading view joins the lines; the file itself is unaffected.
-- **Duplicate detection** compares the `phrase` in note properties and the `INDEX.md` link aliases. Notes written by hand without those aren't recognized.
-- **Sync:** saving the same vault from two devices at the same moment is protected only by create-only writes and the `INDEX.md` re-check.
-- **Clipboard:** reading the clipboard uses `navigator.clipboard.read()`. If a system blocks it, Ctrl+V inside the window and the file picker still work.
-- **Cost tracking** is an estimate with the limitations listed above.
-- **Dev dependencies:** `npm audit` reports a ReDoS advisory in `picomatch` ≤ 4.0.7 (used by vitest, vite and typescript-eslint). No fixed version exists yet. It affects development tooling only, which matches glob patterns from this repository's own config files. The production bundle's dependencies have no known vulnerabilities.
+**Sürümler:** sürümü `npm version <x.y.z>` ile yükseltin (bu komut `manifest.json` ve `versions.json` dosyalarını da günceller), ardından etiketi (tag) GitHub'a gönderin (push). Sürüm iş akışı (release workflow) eklentiyi derler ve `main.js`, `manifest.json` ve `styles.css` dosyalarını taslak (draft) bir GitHub sürümüne ekler.
 
-## License
+## Bilinen sınırlamalar
+
+- **Yalnızca masaüstü.** İş akışı masaüstü ekran görüntüleri üzerine kuruludur; mobil desteklenmez.
+- **Yapay zekâ metni yanlış okuyabilir,** bir vurguyu ya da dilbilgisi kalıbını kaçırabilir veya bir şeyi tam doğru açıklamayabilir. Bu yüzden her öneri incelenir ve düzenlenebilir; kaynak cümleyle uyuşmazlıklar da işaretlenir. Otomatik testler, modelin yanıtlarının ne kadar iyi olduğunu değil, yanıtların nasıl işlendiğini denetler; yanıt kalitesi elle kontrol edilir.
+- **Parça tespiti yalnızca bir ipucudur.** Bir önerinin hem ifadesi hem de metindeki yazılışı, aynı cümleden daha uzun bir önerinin içinde yer alıyorsa öneri o uzun önerinin parçası olarak işaretlenir. Öneri yalnızca işaretsiz bırakılır, yani isterseniz yine de seçip kaydedebilirsiniz; listeden yalnızca sekizden fazla öneri olduğunda çıkarılır.
+- **Arayüz dili:** arayüz ve açıklamalar yalnızca Türkçedir.
+- **`INDEX.md`'de her girdinin ayrı satırda görünmesi**, Obsidian'ın varsayılan *Strict line breaks: off* ayarına bağlıdır. Bu ayar açıksa okuma görünümü satırları birleştirir; dosyanın kendisi etkilenmez.
+- **Yinelenen ifade tespiti**, not özelliklerindeki `phrase` değerini ve `INDEX.md` bağlantılarının takma adlarını (alias) karşılaştırır. Bunlar olmadan elle yazılmış notlar tanınmaz.
+- **Senkronizasyon:** aynı kasanın iki cihazdan aynı anda kaydedilmesine karşı koruma, yalnızca dosyaların üzerine yazılmadan oluşturulması ve `INDEX.md`'nin yazma anında yeniden denetlenmesinden ibarettir.
+- **Pano:** pano `navigator.clipboard.read()` ile okunur. Sistem buna izin vermezse pencere içinde Ctrl+V ve dosya seçici yine çalışır.
+- **Maliyet takibi**, yukarıda sıralanan sınırlamalara sahip bir tahmindir.
+- **Geliştirme bağımlılıkları:** `npm audit`, `picomatch` ≤ 4.0.7 sürümünde (vitest, vite ve typescript-eslint tarafından kullanılır) bir ReDoS güvenlik uyarısı bildiriyor. Henüz düzeltilmiş bir sürüm yok. Uyarı yalnızca geliştirme araçlarını etkiler; bu araçlar da yalnızca bu deponun kendi yapılandırma dosyalarındaki glob kalıplarını eşleştirir. Üretim paketinin bağımlılıklarında bilinen bir güvenlik açığı yoktur.
+
+## Lisans
 
 [MIT](LICENSE)
